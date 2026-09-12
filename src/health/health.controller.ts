@@ -78,8 +78,17 @@ export class HealthController {
                 this.healthIndicatorService
                   .check('database_replica')
                   .attempt(async () => {
-                    await this.prisma.readOnly.$queryRawUnsafe('SELECT 1');
+                    const recoveryResult =
+                      await this.prisma.readOnly.$queryRawUnsafe<
+                        Array<{ in_recovery: boolean }>
+                      >('SELECT pg_is_in_recovery() AS in_recovery');
+                    const isInRecovery = Boolean(
+                      recoveryResult[0]?.in_recovery,
+                    );
+
                     return {
+                      isInRecovery,
+                      isSynchronized: isInRecovery,
                       ...(this.prisma.replicaPool
                         ? {
                             totalConnections:

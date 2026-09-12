@@ -78,7 +78,7 @@ describe('HealthController', () => {
       },
       $queryRawUnsafe: jest.fn().mockResolvedValue([{ '?column?': 1 }]),
       readOnly: {
-        $queryRawUnsafe: jest.fn().mockResolvedValue([{ '?column?': 1 }]),
+        $queryRawUnsafe: jest.fn().mockResolvedValue([{ in_recovery: true }]),
       },
     };
 
@@ -163,11 +163,13 @@ describe('HealthController', () => {
         'database_replica',
       );
       expect(prismaMock.readOnly.$queryRawUnsafe).toHaveBeenCalledWith(
-        'SELECT 1',
+        'SELECT pg_is_in_recovery() AS in_recovery',
       );
       expect(result.info.database_replica).toEqual(
         expect.objectContaining({
           status: 'up',
+          isInRecovery: true,
+          isSynchronized: true,
           totalConnections: 5,
           idleConnections: 4,
           activeConnections: 1,
