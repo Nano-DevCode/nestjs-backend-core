@@ -1,0 +1,182 @@
+services:
+  # ----------------------------------------------------------------------------
+  # 1. Base de Datos PostgreSQL 16
+  # ----------------------------------------------------------------------------
+  postgres-db:
+    image: postgres:16-alpine
+    container_name: sistema_postgres
+    restart: always
+    environment:
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-MySecretPassword123}
+      POSTGRES_DB: ${DB_NAME:-sistema_db}
+    ports:
+      - '${DB_PORT:-5432}:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-sistema_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - sistema_network
+
+  # ----------------------------------------------------------------------------
+  # 2. Redis 7 (Caché, Rate-Limiting, Blacklist y Tokens 2FA)
+  # ----------------------------------------------------------------------------
+  redis:
+    image: redis:7-alpine
+    container_name: sistema_redis
+    restart: always
+    command: redis-server --requirepass ${REDIS_PASSWORD:-MyRedisSecretPassword123}
+    ports:
+      - '${REDIS_PORT:-6379}:6379'
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-MyRedisSecretPassword123}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - sistema_network
+
+  # ----------------------------------------------------------------------------
+  # 3. Antivirus ClamAV Daemon en Caliente
+  # ----------------------------------------------------------------------------
+  clamav:
+    image: clamav/clamav:stable
+    container_name: sistema_clamav
+    restart: unless-stopped
+    ports:
+      - '${CLAMAV_PORT:-3310}:3310'
+    networks:
+      - sistema_network
+
+  # ----------------------------------------------------------------------------
+  # 4. Almacenamiento Compatible S3 (SeaweedFS)
+  # ----------------------------------------------------------------------------
+  seaweedfs:
+    image: chrislusf/seaweedfs:latest
+    container_name: sistema_seaweedfs
+    restart: unless-stopped
+    ports:
+      - '8333:8333'
+      - '9333:9333'
+    command: 'server -dir=/data -s3 -s3.port=8333 -s3.allowEmptyFolder=true'
+    environment:
+      - WEED_S3_KEY_ID=${S3_ACCESS_KEY:-tu_access_key}
+      - WEED_S3_SECRET_KEY=${S3_SECRET_KEY:-tu_secret_key}
+    volumes:
+      - seaweedfs_data:/data
+    networks:
+      - sistema_network
+
+  # ----------------------------------------------------------------------------
+  # 5. Aplicación NestJS Backend (Producción)
+  # ----------------------------------------------------------------------------
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: sistema_api
+    restart: unless-stopped
+    ports:
+      - '${PORT:-3000}:3000'
+    depends_on:
+      postgres-db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      clamav:
+        condition: service_started
+      seaweedfs:
+        condition: service_started
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - DATABASE_URL=postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-MySecretPassword123}@postgres-db:5432/${DB_NAME:-sistema_db}?schema=public
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-MyRedisSecretPassword123}
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET:-super_refresh_jwt_key}
+      - TWO_FACTOR_ENCRYPTION_KEY=${TWO_FACTOR_ENCRYPTION_KEY}
+      - S3_ENDPOINT=http://seaweedfs:8333
+      - S3_REGION=${S3_REGION:-us-east-1}
+      - S3_ACCESS_KEY=${S3_ACCESS_KEY:-tu_access_key}
+      - S3_SECRET_KEY=${S3_SECRET_KEY:-tu_secret_key}
+      - S3_BUCKET=${S3_BUCKET:-sistema-files}
+      - S3_FORCE_PATH_STYLE=true
+      - CLAMAV_HOST=clamav
+      - CLAMAV_PORT=3310
+      - DOCS_USER=${DOCS_USER:-admin}
+      - DOCS_PASSWORD=${DOCS_PASSWORD:-secret123}
+      - MAIL_DRIVER=${MAIL_DRIVER:-smtp}
+      - MAIL_FROM=${MAIL_FROM}
+      - MAIL_HOST=${MAIL_HOST}
+      - MAIL_PORT=${MAIL_PORT:-587}
+      - MAIL_SECURE=${MAIL_SECURE:-false}
+      - MAIL_USER=${MAIL_USER}
+      - MAIL_PASS=${MAIL_PASS}
+      - FRONTEND_URL=${FRONTEND_URL:-http://localhost:5173}
+    networks:
+      - sistema_network
+
+  # ----------------------------------------------------------------------------
+  # 6. Respaldo Automático de PostgreSQL 16 (pg_dump + gzip + rotación cron)
+  # ----------------------------------------------------------------------------
+  postgres-backup:
+    image: prodrigestivill/postgres-backup-local:16-alpine
+    container_name: sistema_postgres_backup
+    restart: unless-stopped
+    depends_on:
+      postgres-db:
+        condition: service_healthy
+    environment:
+      - POSTGRES_HOST=postgres-db
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=${DB_NAME:-sistema_db}
+      - POSTGRES_USER=${DB_USER:-postgres}
+      - POSTGRES_PASSWORD=${DB_PASSWORD:-MySecretPassword123}
+      - SCHEDULE=${BACKUP_CRON_POSTGRES:-0 2 * * *}
+      - BACKUP_KEEP_DAYS=${BACKUP_KEEP_DAYS:-7}
+      - BACKUP_KEEP_WEEKS=${BACKUP_KEEP_WEEKS:-4}
+      - BACKUP_KEEP_MONTHS=${BACKUP_KEEP_MONTHS:-6}
+      - BACKUP_DIR=/backups
+    volumes:
+      - ./backups/postgres:/backups
+    networks:
+      - sistema_network
+
+  # ----------------------------------------------------------------------------
+  # 7. Respaldo Automático de Almacenamiento (SeaweedFS / S3 Files + rotación)
+  # ----------------------------------------------------------------------------
+  storage-backup:
+    build:
+      context: ./docker/storage-backup
+      dockerfile: Dockerfile
+    container_name: sistema_storage_backup
+    restart: unless-stopped
+    depends_on:
+      seaweedfs:
+        condition: service_started
+    environment:
+      - BACKUP_CRON_STORAGE=${BACKUP_CRON_STORAGE:-0 3 * * *}
+      - BACKUP_KEEP_DAYS=${BACKUP_KEEP_DAYS:-7}
+      - BACKUP_ON_START=${BACKUP_ON_START:-false}
+    volumes:
+      - seaweedfs_data:/data:ro
+      - ./backups/storage:/backups
+    networks:
+      - sistema_network
+
+volumes:
+  postgres_data:
+  redis_data:
+  seaweedfs_data:
+
+networks:
+  sistema_network:
+    driver: bridge

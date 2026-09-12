@@ -1,0 +1,67 @@
+jest.mock('uuid', () => ({ v4: () => 'mock-uuid' }));
+jest.mock('@nestjs/schedule', () => ({
+  Cron: () => () => {},
+  CronExpression: {
+    EVERY_DAY_AT_MIDNIGHT: '0 0 * * *',
+    EVERY_WEEK: '0 0 * * 0',
+  },
+}));
+
+import { Test, TestingModule } from '@nestjs/testing';
+import { TasksService } from './tasks.service';
+import { PrismaService } from '../prisma/prisma.service';
+import { FilesService } from '../files/files.service';
+
+describe('TasksService', () => {
+  let service: TasksService;
+  let prisma: {
+    auditLog: {
+      deleteMany: jest.Mock;
+    };
+  };
+  let filesService: Partial<FilesService>;
+
+  beforeEach(async () => {
+    prisma = {
+      auditLog: {
+        deleteMany: jest.fn().mockResolvedValue({ count: 42 }),
+      },
+    };
+
+    filesService = {};
+
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        TasksService,
+        { provide: PrismaService, useValue: prisma },
+        { provide: FilesService, useValue: filesService },
+      ],
+    }).compile();
+
+    service = module.get<TasksService>(TasksService);
+  });
+
+  it('should be defined', () => {
+    expect(service).toBeDefined();
+  });
+
+  it('purgeOrphanFiles should run without error', async () => {
+    const res = await service.purgeOrphanFiles();
+    expect(res).toBeDefined();
+    expect(res.purgedCount).toBe(0);
+  });
+
+  it('purgeOldAuditLogs should delete records older than 90 days', async () => {
+    const res = await service.purgeOldAuditLogs();
+
+    expect(res).toEqual({ deletedCount: 42 });
+    expect(prisma.auditLog.deleteMany).toHaveBeenCalledTimes(1);
+    expect(prisma.auditLog.deleteMany).toHaveBeenCalledWith({
+      where: {
+        createdAt: {
+          lt: expect.any(Date),
+        },
+      },
+    });
+  });
+});

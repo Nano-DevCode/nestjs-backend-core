@@ -1,0 +1,36 @@
+# Dependencias y compilación local
+node_modules
+dist
+.pnpm-store
+
+# Control de versiones y metadatos
+.git
+.gitignore
+.agents
+skills-lock.json
+
+# Archivos de entorno (nunca hornear secretos en imágenes)
+.env
+.env.*
+!.env.example
+
+# Pruebas y cobertura
+test
+coverage
+*.spec.ts
+*.test.ts
+
+# Logs y depuración
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+scratch
+*.md
+.DS_Store
+Thumbs.db
+
+# Backups
+backups

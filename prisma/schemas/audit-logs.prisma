@@ -1,0 +1,20 @@
+model AuditLog {
+  id        String   @id @default(uuid())
+  userId    String?  @map("user_id")
+  action    String   // Ej: "UPDATE_USER", "UPLOAD_FILE", "DELETE_FILE"
+  entity    String?  // Ej: "files", "users"
+  entityId  String?  @map("entity_id")
+  ipAddress String   @map("ip_address")
+  userAgent String?  @map("user_agent")
+  method    String   // "POST", "PATCH", "DELETE", etc.
+  endpoint  String
+  details   Json?    // Datos modificados, payload previo o detalles del cambio
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([action])
+  @@index([createdAt])
+  @@map("audit_logs")
+}

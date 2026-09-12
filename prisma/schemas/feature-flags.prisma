@@ -1,0 +1,13 @@
+model FeatureFlag {
+  id          String   @id @default(uuid())
+  key         String   @unique
+  description String?
+  isEnabled   Boolean  @default(false) @map("is_enabled")
+  rules       Json?
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@index([key])
+  @@map("feature_flags")
+}
+

@@ -1,0 +1,31 @@
+model User {
+  id        String     @id @default(uuid())
+  email     String     @unique
+  password  String
+  name      String?
+  isActive        Boolean    @default(true) @map("is_active")
+  deletedAt       DateTime?  @map("deleted_at")
+  emailVerifiedAt    DateTime?       @map("email_verified_at")
+  twoFactor          UserTwoFactor?
+  roles              UserRole[]
+  auditLogs          AuditLog[]
+  createdAt DateTime   @default(now()) @map("created_at")
+  updatedAt DateTime   @updatedAt @map("updated_at")
+
+  @@index([email])
+  @@map("users")
+}
+
+model UserTwoFactor {
+  id          String   @id @default(uuid())
+  userId      String   @unique @map("user_id")
+  secret      String
+  isEnabled   Boolean  @default(false) @map("is_enabled")
+  backupCodes String[] @default([]) @map("backup_codes")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_two_factors")
+}
