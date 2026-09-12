@@ -1,4 +1,4 @@
-﻿import { Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import * as crypto from 'crypto';
 
 @Injectable()
@@ -11,6 +11,16 @@ export class TwoFactorCryptoService {
       process.env['TWO_FACTOR_ENCRYPTION_KEY'] ||
       process.env['JWT_SECRET'] ||
       'fallback_insecure_key_for_development_only_12345';
+
+    if (process.env['NODE_ENV'] === 'production') {
+      const key = process.env['TWO_FACTOR_ENCRYPTION_KEY'];
+      if (!key || key.length < 32) {
+        throw new Error(
+          'FATAL: TWO_FACTOR_ENCRYPTION_KEY debe estar configurado y tener al menos 32 caracteres en producción.',
+        );
+      }
+    }
+
     this.key = crypto.createHash('sha256').update(rawKey).digest();
   }
 

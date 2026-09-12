@@ -9,11 +9,16 @@ import { AppModule } from './app.module';
 import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
 import { json, urlencoded, Request, Response, NextFunction } from 'express';
-import type { Server } from 'node:http';
+import type { NestExpressApplication } from '@nestjs/platform-express';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 
+interface HttpServerWithTimeout {
+  keepAliveTimeout: number;
+  headersTimeout: number;
+}
+
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
   app.enableShutdownHooks();
 
@@ -82,9 +87,23 @@ async function bootstrap() {
       })(req, res, next);
     }
 
-    // Helmet estricto en todos los demás endpoints de la API
-    return helmet()(req, res, next);
+    // Helmet estricto en todos los demás endpoints de la API (OWASP Hardening)
+    return helmet({
+      hidePoweredBy: true,
+      hsts: {
+        maxAge: 31536000,
+        includeSubDomains: true,
+        preload: true,
+      },
+      frameguard: { action: 'deny' },
+      noSniff: true,
+      referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
+      dnsPrefetchControl: { allow: false },
+    })(req, res, next);
   });
+
+  // Deshabilitar cabecera X-Powered-By de Express explícitamente
+  app.disable('x-powered-by');
 
   app.use(json({ limit: '100kb' }));
   app.use(urlencoded({ extended: true, limit: '100kb' }));
@@ -100,9 +119,38 @@ async function bootstrap() {
 
   app.useGlobalFilters(new HttpExceptionFilter());
 
+  // 3. Configuración CORS defensiva y estricta
+  const allowedOrigins = (process.env.FRONTEND_URL || 'http://localhost:5173')
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter((origin) => origin.length > 0);
+
   app.enableCors({
-    origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+    origin: (
+      origin: string | undefined,
+      callback: (err: Error | null, allow?: boolean) => void,
+    ) => {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(
+          new Error(
+            `Acceso denegado por política CORS: origen '${origin}' no autorizado`,
+          ),
+        );
+      }
+    },
     credentials: true,
+    methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
+    allowedHeaders: [
+      'Content-Type',
+      'Accept',
+      'Authorization',
+      'X-Requested-With',
+      'Idempotency-Key',
+    ],
+    exposedHeaders: ['Content-Range', 'X-Content-Range'],
+    maxAge: 86400,
   });
 
   // 3. Especificación OpenAPI generada para la interfaz de Scalar
@@ -151,7 +199,7 @@ async function bootstrap() {
   await app.listen(port);
 
   // Optimización de Keep-Alive para alta concurrencia y proxies inversos (NGINX, AWS ALB, Cloudflare)
-  const server = app.getHttpServer() as Server;
+  const server = app.getHttpServer() as unknown as HttpServerWithTimeout;
   server.keepAliveTimeout = 65000; // 65 segundos (mayor que los 60s típicos de los proxies)
   server.headersTimeout = 66000; // 66 segundos (debe ser estrictamente superior a keepAliveTimeout)
 

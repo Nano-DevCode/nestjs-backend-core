@@ -1,11 +1,14 @@
 import 'multer';
 import { Injectable, BadRequestException, Logger } from '@nestjs/common';
 import { v4 as uuidv4 } from 'uuid';
-import * as path from 'path';
 import { MAX_FILE_SIZE, DEFAULT_BUCKET } from './files.constants';
 import { VirusScanService } from './services/virus-scan.service';
 import { ImageProcessingService } from './services/image-processing.service';
 import { S3StorageService } from './services/s3-storage.service';
+import {
+  validateFileMagicBytes,
+  sanitizeSafeFilename,
+} from './utils/magic-bytes.util';
 import type {
   UploadFileParams,
   UploadResult,
@@ -35,23 +38,26 @@ export class FilesService {
       );
     }
 
-    // 2. Escaneo antivirus en caliente con ClamAV
+    // 2. Validación defensiva de Magic Bytes (Firmas binarias reales vs declared MIME)
+    validateFileMagicBytes(file.buffer, file.mimetype);
+
+    // 3. Escaneo antivirus en caliente con ClamAV
     await this.virusScanService.scanBuffer(file.buffer);
 
-    // 3. Procesamiento y optimización de imágenes (.webp)
+    // 4. Procesamiento y optimización de imágenes (.webp)
     const processed = await this.imageProcessingService.processFile(
       file.buffer,
       file.mimetype,
       file.originalname,
     );
 
-    // 4. Sanitización y asignación del key único
+    // 5. Sanitización criptográfica y asignación del key único (Prevención de Path Traversal)
     const targetBucket = bucket || DEFAULT_BUCKET;
     const key = customName
-      ? this.sanitizeFilename(customName, processed.extension)
+      ? sanitizeSafeFilename(customName, processed.extension)
       : `${uuidv4()}${processed.extension}`;
 
-    // 5. Almacenamiento en SeaweedFS vía API S3
+    // 6. Almacenamiento en SeaweedFS vía API S3
     await this.s3StorageService.uploadFile(
       targetBucket,
       key,
@@ -153,20 +159,5 @@ export class FilesService {
 
   getFileUrl(key: string, _bucket?: string): string {
     return `/api/files/view/${encodeURIComponent(key)}`;
-  }
-
-  private sanitizeFilename(name: string, defaultExt: string): string {
-    const rawExt = path.extname(name);
-    const ext = rawExt ? rawExt.toLowerCase() : defaultExt;
-    const base = path.basename(name, rawExt);
-    const sanitizedBase = base
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .replace(/[^a-zA-Z0-9_-]/g, '_')
-      .replace(/_+/g, '_')
-      .replace(/^_+|_+$/g, '');
-
-    const finalBase = sanitizedBase || uuidv4();
-    return `${finalBase}${ext}`;
   }
 }

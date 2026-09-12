@@ -52,13 +52,17 @@ export class AuthTokenService {
 
     const jwtSecret = process.env.JWT_SECRET;
     const refreshSecret = process.env.JWT_REFRESH_SECRET;
-    if (
-      (!jwtSecret || !refreshSecret) &&
-      process.env.NODE_ENV === 'production'
-    ) {
-      throw new Error(
-        'FATAL: JWT_SECRET o JWT_REFRESH_SECRET no están configurados en producción.',
-      );
+    if (process.env.NODE_ENV === 'production') {
+      if (!jwtSecret || jwtSecret.length < 32) {
+        throw new Error(
+          'FATAL: JWT_SECRET debe estar configurado y tener al menos 32 caracteres en producción.',
+        );
+      }
+      if (!refreshSecret || refreshSecret.length < 32) {
+        throw new Error(
+          'FATAL: JWT_REFRESH_SECRET debe estar configurado y tener al menos 32 caracteres en producción.',
+        );
+      }
     }
 
     const accessToken = this.jwtService.sign(payload, {

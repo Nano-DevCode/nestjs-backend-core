@@ -88,4 +88,41 @@ describe('AuditService', () => {
       }),
     ).resolves.not.toThrow();
   });
+
+  it('should redact sensitive fields such as password and token in details', async () => {
+    const context: AuditMetadata = {
+      userId: 'usr-123',
+      ipAddress: '127.0.0.1',
+      method: 'POST',
+      endpoint: '/auth/login',
+    };
+
+    await service.log({
+      context,
+      action: 'USER_LOGIN',
+      details: {
+        email: 'test@example.com',
+        password: 'SuperSecretPassword123!',
+        token: 'eyJh.sensitive.token',
+        nested: {
+          refreshToken: 'refresh-abc',
+          safeField: 'visible',
+        },
+      },
+    });
+
+    expect(prisma.auditLog.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        details: {
+          email: 'test@example.com',
+          password: '[REDACTED]',
+          token: '[REDACTED]',
+          nested: {
+            refreshToken: '[REDACTED]',
+            safeField: 'visible',
+          },
+        },
+      }),
+    });
+  });
 });

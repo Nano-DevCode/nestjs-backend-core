@@ -11,6 +11,40 @@ export interface AuditLogParams {
   details?: Record<string, any>;
 }
 
+const SENSITIVE_KEY_PATTERN =
+  /^(password|passwordhash|token|refreshtoken|accesstoken|secret|credit_?card|cvv|authorization|apikey|api_key|twofactorsecret|encryptionkey)$/i;
+
+/**
+ * Sanitiza recursivamente objetos y arrays para rediseñar y ocultar
+ * información confidencial (credenciales, tokens, llaves criptográficas)
+ * antes de almacenar en el log de auditoría.
+ */
+export function redactSensitiveData(data: unknown): unknown {
+  if (data === null || data === undefined) {
+    return data;
+  }
+
+  if (Array.isArray(data)) {
+    return data.map((item) => redactSensitiveData(item));
+  }
+
+  if (typeof data === 'object') {
+    const redacted: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(
+      data as Record<string, unknown>,
+    )) {
+      if (SENSITIVE_KEY_PATTERN.test(key)) {
+        redacted[key] = '[REDACTED]';
+      } else {
+        redacted[key] = redactSensitiveData(value);
+      }
+    }
+    return redacted;
+  }
+
+  return data;
+}
+
 @Injectable()
 export class AuditService {
   private readonly logger = new Logger(AuditService.name);
@@ -25,6 +59,9 @@ export class AuditService {
     details?: Record<string, any>;
   }): Promise<void> {
     const { context, action, entity, entityId, details } = params;
+    const sanitizedDetails = details
+      ? (redactSensitiveData(details) as Prisma.InputJsonValue)
+      : undefined;
 
     try {
       await this.prisma.auditLog.create({
@@ -37,7 +74,7 @@ export class AuditService {
           userAgent: context.userAgent ?? null,
           method: context.method,
           endpoint: context.endpoint,
-          details: details ? (details as Prisma.InputJsonValue) : undefined,
+          details: sanitizedDetails,
         },
       });
     } catch (error) {

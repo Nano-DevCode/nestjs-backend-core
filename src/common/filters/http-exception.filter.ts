@@ -9,6 +9,32 @@ import {
 import type { Request, Response } from 'express';
 import { Prisma } from '../../../prisma/generated/prisma/client';
 
+/**
+ * Sanitiza cualquier mensaje devuelto al cliente para evitar fugas de
+ * cadenas de conexión, contraseñas o tokens.
+ */
+function sanitizePublicMessage(
+  msg: unknown,
+): string | string[] | Record<string, unknown> {
+  if (typeof msg === 'string') {
+    return msg
+      .replace(/postgresql:\/\/[^@]+@/gi, 'postgresql://[REDACTED]@')
+      .replace(/password[:=]\s*[^\s,;]+/gi, 'password=[REDACTED]')
+      .replace(/token[:=]\s*[^\s,;]+/gi, 'token=[REDACTED]');
+  }
+  if (Array.isArray(msg)) {
+    return msg.map((item) =>
+      typeof item === 'string'
+        ? (sanitizePublicMessage(item) as string)
+        : String(item),
+    );
+  }
+  if (typeof msg === 'object' && msg !== null) {
+    return msg as Record<string, unknown>;
+  }
+  return String(msg);
+}
+
 @Catch()
 export class HttpExceptionFilter implements ExceptionFilter {
   private readonly logger = new Logger(HttpExceptionFilter.name);
@@ -26,11 +52,13 @@ export class HttpExceptionFilter implements ExceptionFilter {
       statusCode = exception.getStatus();
       const res = exception.getResponse();
       if (typeof res === 'object' && res !== null && 'message' in res) {
-        message = (res as { message: string | string[] }).message;
+        message = sanitizePublicMessage(
+          (res as { message: string | string[] }).message,
+        );
       } else if (typeof res === 'string') {
-        message = res;
+        message = sanitizePublicMessage(res);
       } else {
-        message = exception.message;
+        message = sanitizePublicMessage(exception.message);
       }
     } else if (exception instanceof Prisma.PrismaClientKnownRequestError) {
       statusCode = HttpStatus.BAD_REQUEST;
@@ -67,6 +95,17 @@ export class HttpExceptionFilter implements ExceptionFilter {
       message = 'Datos de entrada inválidos para la operación de datos';
       this.logger.error(
         `[PrismaValidationError] en ${request.method} ${request.url}: ${exception.message}`,
+      );
+    } else if (
+      exception instanceof Prisma.PrismaClientInitializationError ||
+      exception instanceof Prisma.PrismaClientRustPanicError ||
+      exception instanceof Prisma.PrismaClientUnknownRequestError
+    ) {
+      statusCode = HttpStatus.INTERNAL_SERVER_ERROR;
+      message =
+        'Error interno en el servicio de datos. Por favor, intenta más tarde.';
+      this.logger.error(
+        `[PrismaFatalError] en ${request.method} ${request.url}: ${(exception as Error).message}`,
       );
     } else {
       const error = exception as Error;
