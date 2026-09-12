@@ -1,16 +1,11 @@
 import { ExecutionContext } from '@nestjs/common';
 const ROUTE_ARGS_METADATA = '__routeArguments__';
 import { WsException } from '@nestjs/websockets';
-import {
-  WsCurrentUser,
-  WsClient,
-  WsPayload,
-  WsRoles,
-  WsPermissions,
-  WsRequire2FA,
-  WsRequireFeature,
-  WsPublic,
-} from './index';
+import { WsCurrentUser } from './ws-current-user.decorator';
+import { WsClient, WsPayload } from './ws-client.decorator';
+import { WsRoles, WsPermissions, WsPublic } from './ws-auth.decorator';
+import { WsRequire2FA } from './ws-2fa.decorator';
+import { WsRequireFeature } from './ws-feature.decorator';
 import {
   ROLES_KEY,
   PERMISSIONS_KEY,

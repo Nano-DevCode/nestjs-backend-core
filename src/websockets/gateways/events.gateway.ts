@@ -7,25 +7,23 @@ import {
 } from '@nestjs/websockets';
 import { UseGuards, UseFilters, Logger } from '@nestjs/common';
 import type { Server } from 'socket.io';
+import { WsJwtGuard } from '../guards/ws-jwt.guard';
+import { WsRolesGuard } from '../guards/ws-roles.guard';
+import { WsPermissionsGuard } from '../guards/ws-permissions.guard';
+import { WsTwoFactorGuard } from '../guards/ws-2fa.guard';
+import { WsFeatureFlagGuard } from '../guards/ws-feature.guard';
+import { WsAllExceptionsFilter } from '../filters/ws-exception.filter';
+import { WsCurrentUser } from '../decorators/ws-current-user.decorator';
 import {
-  WsJwtGuard,
-  WsRolesGuard,
-  WsPermissionsGuard,
-  WsTwoFactorGuard,
-  WsFeatureFlagGuard,
-} from '../guards';
-import { WsAllExceptionsFilter } from '../filters';
-import {
-  WsCurrentUser,
   WsRoles,
   WsPermissions,
-  WsRequire2FA,
-  WsRequireFeature,
-  WsClient,
-  WsPayload,
   WsPublic,
-} from '../decorators';
+} from '../decorators/ws-auth.decorator';
+import { WsRequire2FA } from '../decorators/ws-2fa.decorator';
+import { WsRequireFeature } from '../decorators/ws-feature.decorator';
+import { WsClient, WsPayload } from '../decorators/ws-client.decorator';
 import type { AuthenticatedSocket } from '../interfaces/authenticated-socket.interface';
+
 import type { UserAuthContext } from '../../auth/interfaces/auth.interface';
 
 @UseFilters(WsAllExceptionsFilter)

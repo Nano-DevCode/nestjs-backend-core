@@ -11,10 +11,8 @@ import type {
   MailDriver,
 } from './interfaces/mail.interface';
 
-import {
-  getPasswordResetTemplate,
-  getVerificationEmailTemplate,
-} from './templates';
+import { getPasswordResetTemplate } from './templates/password-reset.template';
+import { getVerificationEmailTemplate } from './templates/verification-email.template';
 
 @Processor(MAIL_QUEUE)
 export class MailProcessor

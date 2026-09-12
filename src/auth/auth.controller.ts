@@ -17,12 +17,10 @@ import { AuthService } from './auth.service';
 import { SessionService } from './session.service';
 import { Roles, RequirePermissions } from './decorators/auth.decorator';
 import { PermissionsGuard } from './guards/permissions.guard';
-import {
-  RegisterDto,
-  LoginDto,
-  VerifyEmailDto,
-  ResendVerificationDto,
-} from './dto';
+import { RegisterDto } from './dto/register.dto';
+import { LoginDto } from './dto/login.dto';
+import { VerifyEmailDto } from './dto/verify-email.dto';
+import { ResendVerificationDto } from './dto/resend-verification.dto';
 import { Throttle } from '@nestjs/throttler';
 import { TwoFactorGuard } from '../two-factor/guards/two-factor.guard';
 import { Require2FA } from '../two-factor/decorators/require-2fa.decorator';

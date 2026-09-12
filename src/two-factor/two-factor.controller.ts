@@ -13,7 +13,9 @@ import type { Request, Response } from 'express';
 import { AuthGuard } from '@nestjs/passport';
 import { Throttle } from '@nestjs/throttler';
 import { TwoFactorService } from './two-factor.service';
-import { TwoFactorCodeDto, TwoFactorAuthDto, Toggle2FADto } from './dto';
+import { TwoFactorCodeDto } from './dto/two-factor-code.dto';
+import { TwoFactorAuthDto } from './dto/two-factor-auth.dto';
+import { Toggle2FADto } from './dto/toggle-2fa.dto';
 import { AuthService } from '../auth/auth.service';
 
 interface AuthenticatedUser {

@@ -5,7 +5,9 @@ import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { SessionService } from './session.service';
 import { JwtStrategy } from './jwt.strategy';
-import { JwtAuthGuard, RolesGuard, PermissionsGuard } from './guards';
+import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { RolesGuard } from './guards/roles.guard';
+import { PermissionsGuard } from './guards/permissions.guard';
 import { MailModule } from '../mail/mail.module';
 import { TwoFactorModule } from '../two-factor/two-factor.module';
 

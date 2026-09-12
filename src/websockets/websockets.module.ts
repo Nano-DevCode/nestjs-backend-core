@@ -4,15 +4,12 @@ import { AuthModule } from '../auth/auth.module';
 import { TwoFactorModule } from '../two-factor/two-factor.module';
 import { FeatureFlagsModule } from '../features/feature-flags.module';
 import { RedisModule } from '../redis/redis.module';
-import {
-  WsJwtGuard,
-  WsRolesGuard,
-  WsPermissionsGuard,
-  WsTwoFactorGuard,
-  WsFeatureFlagGuard,
-} from './guards';
-import { WsAllExceptionsFilter } from './filters';
-
+import { WsJwtGuard } from './guards/ws-jwt.guard';
+import { WsRolesGuard } from './guards/ws-roles.guard';
+import { WsPermissionsGuard } from './guards/ws-permissions.guard';
+import { WsTwoFactorGuard } from './guards/ws-2fa.guard';
+import { WsFeatureFlagGuard } from './guards/ws-feature.guard';
+import { WsAllExceptionsFilter } from './filters/ws-exception.filter';
 import { EventsGateway } from './gateways/events.gateway';
 
 @Module({

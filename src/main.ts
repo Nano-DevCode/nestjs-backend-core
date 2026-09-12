@@ -6,7 +6,7 @@ import { AppModule } from './app.module';
 import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
 import { json, urlencoded, Request, Response, NextFunction } from 'express';
-import { HttpExceptionFilter } from './common/filters';
+import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);

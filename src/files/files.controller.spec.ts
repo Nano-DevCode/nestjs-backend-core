@@ -26,7 +26,9 @@ import { ExecutionContext, ForbiddenException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { FilesController } from './files.controller';
 import { FilesService } from './files.service';
-import { RolesGuard, PermissionsGuard, JwtAuthGuard } from '../auth/guards';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { PermissionsGuard } from '../auth/guards/permissions.guard';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import {
   ROLES_KEY,
   PERMISSIONS_KEY,
