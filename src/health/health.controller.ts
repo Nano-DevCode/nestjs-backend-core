@@ -1,10 +1,15 @@
-import { Controller, Get, Inject } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Inject,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 import {
   HealthCheck,
   HealthCheckService,
   HealthIndicatorService,
-  PrismaHealthIndicator,
 } from '@nestjs/terminus';
+import { SkipThrottle } from '@nestjs/throttler';
 import { ApiTags, ApiOperation } from '../common/scalar/scalar.decorators';
 import Redis from 'ioredis';
 import { PrismaService } from '../prisma/prisma.service';
@@ -18,7 +23,6 @@ import { DEFAULT_BUCKET } from '../files/files.constants';
 export class HealthController {
   constructor(
     private readonly health: HealthCheckService,
-    private readonly prismaHealthIndicator: PrismaHealthIndicator,
     private readonly healthIndicatorService: HealthIndicatorService,
     private readonly prisma: PrismaService,
     @Inject(REDIS_CLIENT) private readonly redis: Redis,
@@ -27,30 +31,125 @@ export class HealthController {
 
   @Get()
   @Public()
+  @SkipThrottle()
   @HealthCheck()
   @ApiOperation({
     summary:
-      'Verifica el estado de salud de los servicios del sistema (PostgreSQL, Redis y S3 Storage)',
+      'Verifica el estado detallado del sistema (PostgreSQL primario, réplica, Redis, almacenamiento y métricas)',
   })
-  check() {
-    return this.health.check([
-      // 1. Verificación de Base de Datos PostgreSQL con PrismaHealthIndicator
-      () => this.prismaHealthIndicator.pingCheck('database', this.prisma),
+  async check() {
+    const memUsage = process.memoryUsage();
+    const memoryMetrics = {
+      heapUsedMB: Math.round(memUsage.heapUsed / (1024 * 1024)),
+      rssMB: Math.round(memUsage.rss / (1024 * 1024)),
+    };
 
-      // 2. Verificación de Conectividad con Redis
-      () =>
-        this.healthIndicatorService.check('redis').attempt(async () => {
-          const pong: unknown = await this.redis.ping();
-          if (pong !== 'PONG') {
-            throw new Error('Respuesta de ping inesperada de Redis');
-          }
-        }),
+    const replicaDisabledStatus = {
+      status: 'disabled',
+      message: 'Read replica no configurada (DATABASE_REPLICA_URL no definida)',
+    };
 
-      // 3. Verificación de Almacenamiento SeaweedFS / S3
-      () =>
-        this.healthIndicatorService.check('storage').attempt(async () => {
-          await this.s3StorageService.ensureBucketExists(DEFAULT_BUCKET);
-        }),
-    ]);
+    try {
+      const result = await this.health.check([
+        // 1. Base de datos primaria con métricas de connection pool
+        () =>
+          this.healthIndicatorService
+            .check('database_primary')
+            .attempt(async () => {
+              await this.prisma.$queryRawUnsafe('SELECT 1');
+              return {
+                ...(this.prisma.pool
+                  ? {
+                      totalConnections: this.prisma.pool.totalCount,
+                      idleConnections: this.prisma.pool.idleCount,
+                      activeConnections:
+                        this.prisma.pool.totalCount -
+                        this.prisma.pool.idleCount,
+                      waitingRequests: this.prisma.pool.waitingCount,
+                    }
+                  : {}),
+              };
+            }),
+
+        // 2. Base de datos réplica de lectura (Dinámico / Condicional)
+        ...(this.prisma.hasReplica
+          ? [
+              () =>
+                this.healthIndicatorService
+                  .check('database_replica')
+                  .attempt(async () => {
+                    await this.prisma.readOnly.$queryRawUnsafe('SELECT 1');
+                    return {
+                      ...(this.prisma.replicaPool
+                        ? {
+                            totalConnections:
+                              this.prisma.replicaPool.totalCount,
+                            idleConnections: this.prisma.replicaPool.idleCount,
+                            activeConnections:
+                              this.prisma.replicaPool.totalCount -
+                              this.prisma.replicaPool.idleCount,
+                            waitingRequests:
+                              this.prisma.replicaPool.waitingCount,
+                          }
+                        : {}),
+                    };
+                  }),
+            ]
+          : []),
+
+        // 3. Conectividad Redis (PING/PONG)
+        () =>
+          this.healthIndicatorService.check('redis').attempt(async () => {
+            const pong: unknown = await this.redis.ping();
+            if (pong !== 'PONG') {
+              throw new Error('Respuesta inesperada de ping en Redis');
+            }
+          }),
+
+        // 4. Almacenamiento Compatible S3 (SeaweedFS / S3)
+        () =>
+          this.healthIndicatorService.check('storage').attempt(async () => {
+            await this.s3StorageService.ensureBucketExists(DEFAULT_BUCKET);
+          }),
+      ]);
+
+      const replicaStatus = this.prisma.hasReplica
+        ? (result.info?.['database_replica'] ?? { status: 'up' })
+        : replicaDisabledStatus;
+
+      return {
+        status: result.status,
+        timestamp: new Date().toISOString(),
+        uptime: Math.floor(process.uptime()),
+        info: {
+          ...result.info,
+          database_replica: replicaStatus,
+          memory: memoryMetrics,
+        },
+      };
+    } catch (error) {
+      if (error instanceof ServiceUnavailableException) {
+        const response = error.getResponse() as Record<string, unknown>;
+        const replicaStatus = this.prisma.hasReplica
+          ? ((response['info'] as Record<string, unknown>)?.[
+              'database_replica'
+            ] ?? { status: 'down' })
+          : replicaDisabledStatus;
+
+        throw new ServiceUnavailableException({
+          status: response['status'] || 'error',
+          timestamp: new Date().toISOString(),
+          uptime: Math.floor(process.uptime()),
+          info: {
+            ...((response['info'] as Record<string, unknown>) || {}),
+            database_replica: replicaStatus,
+            memory: memoryMetrics,
+          },
+          error: response['error'],
+          details: response['details'],
+        });
+      }
+      throw error;
+    }
   }
 }
