@@ -53,6 +53,9 @@ importers:
       '@prisma/client':
         specifier: 7.10.0
         version: 7.10.0(prisma@7.10.0(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(typescript@5.9.3))(typescript@5.9.3)
+      '@prisma/extension-read-replicas':
+        specifier: ^0.5.0
+        version: 0.5.0(@prisma/client@7.10.0(prisma@7.10.0(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(typescript@5.9.3))(typescript@5.9.3))
       '@scalar/nestjs-api-reference':
         specifier: ^1.2.18
         version: 1.2.18
@@ -1594,6 +1597,11 @@ packages:
 
   '@prisma/engines@7.10.0':
     resolution: {integrity: sha512-KNumN6NHFwybvfdYzTee9pqwx5PvknpWAaHn6L5NsbrKdl+SQrsVZs9opKs6U6SAsvB26HDt3WybRjOhgoWOYQ==}
+
+  '@prisma/extension-read-replicas@0.5.0':
+    resolution: {integrity: sha512-t0kLjqFMte4wwGrZFhya4iFoyoOY4kjlyyE60WXZL66PqP6PcBpW/35eKb/3UcxgjJxcDlaJKfmGokFLOyafiQ==}
+    peerDependencies:
+      '@prisma/client': ^7.0.0
 
   '@prisma/fetch-engine@7.10.0':
     resolution: {integrity: sha512-Zqyu8DY14t6W/xwmAxUYWCXtHrvQnSvT644EAZSsdM8NSmCS74vJJbBKdVsK3ucFpnUWkEpbO1a0CxJXrg130g==}
@@ -6273,6 +6281,10 @@ snapshots:
       '@prisma/engines-version': 7.10.0-4.0edf323efd1d98336f3f0a68684b56f689b900d3
       '@prisma/fetch-engine': 7.10.0
       '@prisma/get-platform': 7.10.0
+
+  '@prisma/extension-read-replicas@0.5.0(@prisma/client@7.10.0(prisma@7.10.0(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(typescript@5.9.3))(typescript@5.9.3))':
+    dependencies:
+      '@prisma/client': 7.10.0(prisma@7.10.0(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(typescript@5.9.3))(typescript@5.9.3)
 
   '@prisma/fetch-engine@7.10.0':
     dependencies:

@@ -76,3 +76,4 @@ const instance = autocannon(
 );
 
 autocannon.track(instance, { renderProgressBar: true });
+

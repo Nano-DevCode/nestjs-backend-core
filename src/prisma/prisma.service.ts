@@ -1,10 +1,29 @@
 import 'dotenv/config';
-import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import {
+  Injectable,
+  OnModuleInit,
+  OnModuleDestroy,
+  Logger,
+} from '@nestjs/common';
 import { Pool } from 'pg';
 import { PrismaPg } from '@prisma/adapter-pg';
+import { readReplicas } from '@prisma/extension-read-replicas';
 import { Prisma, PrismaClient } from '../../prisma/generated/prisma/client';
 
 export { Prisma, PrismaClient } from '../../prisma/generated/prisma/client';
+
+interface HasReplicaMethod {
+  $replica: () => unknown;
+}
+
+function isReplicaCapable(target: unknown): target is HasReplicaMethod {
+  return (
+    typeof target === 'object' &&
+    target !== null &&
+    '$replica' in target &&
+    typeof (target as HasReplicaMethod).$replica === 'function'
+  );
+}
 
 export function createSoftDeleteExtension() {
   return Prisma.defineExtension({
@@ -41,7 +60,17 @@ export class PrismaService
   extends PrismaClient
   implements OnModuleInit, OnModuleDestroy
 {
+  private readonly logger = new Logger(PrismaService.name);
   public readonly pool: Pool;
+  public readonly replicaPool?: Pool;
+  public readonly hasReplica: boolean;
+
+  get readOnly(): this {
+    if (this.hasReplica && isReplicaCapable(this)) {
+      return this.$replica() as this;
+    }
+    return this;
+  }
 
   constructor() {
     const dbPassword = process.env['DB_PASSWORD'];
@@ -75,22 +104,81 @@ export class PrismaService
 
     this.pool = pool;
 
-    const extended = this.$extends(createSoftDeleteExtension());
+    const replicaUrl = process.env['DATABASE_REPLICA_URL']?.trim();
+    const hasReplica = Boolean(replicaUrl && replicaUrl.length > 0);
+    let replicaPool: Pool | undefined;
+    let replicaClient: unknown;
+
+    if (hasReplica && replicaUrl) {
+      this.logger.log(
+        'Soporte de Read Replica activado (DATABASE_REPLICA_URL detectada).',
+      );
+      replicaPool = new Pool({
+        connectionString: replicaUrl,
+        max: poolMax,
+        min: poolMin,
+        connectionTimeoutMillis: poolTimeoutMs,
+        idleTimeoutMillis: 10000,
+        statement_timeout: 10000,
+        keepAlive: true,
+        keepAliveInitialDelayMillis: 10000,
+      });
+
+      const replicaAdapter = new PrismaPg(replicaPool);
+      replicaClient = new PrismaClient({ adapter: replicaAdapter }).$extends(
+        createSoftDeleteExtension(),
+      );
+      this.replicaPool = replicaPool;
+    } else {
+      this.logger.log(
+        'Modo base de datos única activo (Primary). Read replica no configurada o en fallback.',
+      );
+    }
+
+    this.hasReplica = hasReplica;
+
+    let extended = this.$extends(createSoftDeleteExtension());
+
+    if (hasReplica && replicaClient) {
+      extended = extended.$extends(
+        readReplicas({
+          replicas: [replicaClient as unknown as PrismaClient],
+        }),
+      );
+    }
 
     (
       extended as unknown as { onModuleInit: () => Promise<void> }
     ).onModuleInit = async () => {
-      await this.$connect();
+      await (extended as unknown as PrismaClient).$connect();
     };
 
     (
       extended as unknown as { onModuleDestroy: () => Promise<void> }
     ).onModuleDestroy = async () => {
-      await this.$disconnect();
+      await (extended as unknown as PrismaClient).$disconnect();
       await this.pool.end();
+      if (replicaPool) {
+        await replicaPool.end();
+      }
     };
 
     (extended as unknown as { pool: Pool }).pool = this.pool;
+    if (replicaPool) {
+      (extended as unknown as { replicaPool: Pool }).replicaPool = replicaPool;
+    }
+    (extended as unknown as { hasReplica: boolean }).hasReplica = hasReplica;
+
+    Object.defineProperty(extended, 'readOnly', {
+      get() {
+        if (hasReplica && isReplicaCapable(extended)) {
+          return extended.$replica();
+        }
+        return extended;
+      },
+      enumerable: true,
+      configurable: true,
+    });
 
     return extended as unknown as PrismaService;
   }
@@ -102,5 +190,8 @@ export class PrismaService
   async onModuleDestroy() {
     await this.$disconnect();
     await this.pool.end();
+    if (this.replicaPool) {
+      await this.replicaPool.end();
+    }
   }
 }
