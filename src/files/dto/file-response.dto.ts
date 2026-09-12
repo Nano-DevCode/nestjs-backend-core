@@ -1,4 +1,4 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty } from '../../common/scalar/scalar.decorators';
 
 export class FileResponseDto {
   @ApiProperty({

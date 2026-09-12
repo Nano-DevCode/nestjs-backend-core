@@ -1,6 +1,9 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
-import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
+import {
+  DocumentBuilder,
+  SwaggerModule as OpenApiModule,
+} from '@nestjs/swagger';
 import { apiReference } from '@scalar/nestjs-api-reference';
 import { AppModule } from './app.module';
 import cookieParser from 'cookie-parser';
@@ -101,8 +104,8 @@ async function bootstrap() {
     credentials: true,
   });
 
-  // 3. Documento OpenAPI / Swagger
-  const swaggerConfig = new DocumentBuilder()
+  // 3. Especificación OpenAPI generada para la interfaz de Scalar
+  const scalarConfig = new DocumentBuilder()
     .setTitle('Sistema API')
     .setDescription(
       'API Empresarial con Autenticación 2FA, RBAC, Auditoría, Resiliencia y Almacenamiento S3',
@@ -129,14 +132,14 @@ async function bootstrap() {
     )
     .build();
 
-  const document = SwaggerModule.createDocument(app, swaggerConfig);
+  const openApiSpec = OpenApiModule.createDocument(app, scalarConfig);
 
   // 4. Montar Scalar API Reference
   app.use(
     '/api/docs',
     apiReference({
       spec: {
-        content: document,
+        content: openApiSpec,
       },
       theme: 'purple',
       cdn: 'https://cdn.jsdelivr.net/npm/@scalar/api-reference',

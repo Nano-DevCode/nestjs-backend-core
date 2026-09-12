@@ -5,7 +5,7 @@ import {
   HealthIndicatorService,
   PrismaHealthIndicator,
 } from '@nestjs/terminus';
-import { ApiTags, ApiOperation } from '@nestjs/swagger';
+import { ApiTags, ApiOperation } from '../common/scalar/scalar.decorators';
 import Redis from 'ioredis';
 import { PrismaService } from '../prisma/prisma.service';
 import { REDIS_CLIENT } from '../redis/redis.constants';
