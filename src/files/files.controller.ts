@@ -155,17 +155,15 @@ export class FilesController {
       );
     }
 
-    const results: FileResponseDto[] = [];
-    for (const file of files) {
-      const res = await this.filesService.uploadFile({
-        file,
-        customName: dto.customName,
-        bucket: dto.bucket,
-      });
-      results.push(res);
-    }
-
-    return results;
+    return Promise.all(
+      files.map((file) =>
+        this.filesService.uploadFile({
+          file,
+          customName: dto.customName,
+          bucket: dto.bucket,
+        }),
+      ),
+    );
   }
 
   @Get('public/:key')

@@ -1,6 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import Redis from 'ioredis';
 import { REDIS_CLIENT } from '../redis/redis.constants';
+import type { UserAuthContext } from './interfaces/auth.interface';
 
 export interface RotationResult {
   success: boolean;
@@ -143,5 +144,41 @@ export class SessionService {
   async isTokenBlacklisted(identifier: string): Promise<boolean> {
     const exists = await this.redis.exists(`blacklist:jwt:${identifier}`);
     return exists === 1;
+  }
+
+  async getCachedUserAuthContext(
+    userId: string,
+  ): Promise<UserAuthContext | null> {
+    try {
+      const data = await this.redis.get(`auth:context:${userId}`);
+      return data ? (JSON.parse(data) as UserAuthContext) : null;
+    } catch {
+      return null;
+    }
+  }
+
+  async cacheUserAuthContext(
+    userId: string,
+    context: UserAuthContext,
+    ttlSeconds = 60,
+  ): Promise<void> {
+    try {
+      await this.redis.set(
+        `auth:context:${userId}`,
+        JSON.stringify(context),
+        'EX',
+        ttlSeconds,
+      );
+    } catch {
+      // Fallback silencioso en caso de indisponibilidad temporal de Redis
+    }
+  }
+
+  async invalidateUserAuthCache(userId: string): Promise<void> {
+    try {
+      await this.redis.del(`auth:context:${userId}`);
+    } catch {
+      // Fallback silencioso
+    }
   }
 }

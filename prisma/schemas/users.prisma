@@ -13,6 +13,9 @@ model User {
   updatedAt DateTime   @updatedAt @map("updated_at")
 
   @@index([email])
+  @@index([deletedAt])
+  @@index([email, deletedAt])
+  @@index([isActive, deletedAt])
   @@map("users")
 }
 

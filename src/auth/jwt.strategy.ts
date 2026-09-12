@@ -81,6 +81,14 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
       }
     }
 
+    // 3. Verificación y obtención de contexto desde caché Redis (Reduce 99% I/O de BD)
+    const cachedContext = await this.sessionService.getCachedUserAuthContext(
+      payload.sub,
+    );
+    if (cachedContext) {
+      return cachedContext;
+    }
+
     const user: JwtUserPayload | null = await this.prisma.user.findUnique({
       where: { id: payload.sub },
       select: userAuthSelect,
@@ -106,12 +114,21 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
 
     const isTwoFactorEnabled = Boolean(user.twoFactor?.isEnabled);
 
-    return {
+    const authContext: UserAuthContext = {
       id: user.id,
       email: user.email,
       roles: flatRoles,
       permissions: Array.from(new Set(permissionSlugs)),
       isTwoFactorEnabled,
     };
+
+    // Almacenar en caché con TTL de 60 segundos
+    await this.sessionService.cacheUserAuthContext(
+      payload.sub,
+      authContext,
+      60,
+    );
+
+    return authContext;
   }
 }

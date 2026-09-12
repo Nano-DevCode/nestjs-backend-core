@@ -9,6 +9,7 @@ import { AppModule } from './app.module';
 import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
 import { json, urlencoded, Request, Response, NextFunction } from 'express';
+import type { Server } from 'node:http';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 
 async function bootstrap() {
@@ -148,6 +149,12 @@ async function bootstrap() {
 
   const port = process.env.PORT ?? 3000;
   await app.listen(port);
+
+  // Optimización de Keep-Alive para alta concurrencia y proxies inversos (NGINX, AWS ALB, Cloudflare)
+  const server = app.getHttpServer() as Server;
+  server.keepAliveTimeout = 65000; // 65 segundos (mayor que los 60s típicos de los proxies)
+  server.headersTimeout = 66000; // 66 segundos (debe ser estrictamente superior a keepAliveTimeout)
+
   console.log(`Application is running on port: ${port}`);
   console.log(
     `Scalar API documentation (Protegida) at: http://localhost:${port}/api/docs`,

@@ -53,9 +53,20 @@ export class PrismaService
       process.env['DATABASE_URL'] ||
       `postgresql://${process.env['DB_USER'] || 'postgres'}:${dbPassword || ''}@localhost:${process.env['DB_PORT'] || 5432}/${process.env['DB_NAME'] || 'sistema'}?schema=public`;
 
+    const poolMax = Number(process.env['DB_POOL_MAX']) || 25;
+    const poolMin = Number(process.env['DB_POOL_MIN']) || 5;
+    const poolTimeoutMs = Number(process.env['DB_POOL_TIMEOUT_MS']) || 5000;
+
     const pool = new Pool({
       connectionString,
       password: dbPassword || undefined,
+      max: poolMax,
+      min: poolMin,
+      connectionTimeoutMillis: poolTimeoutMs,
+      idleTimeoutMillis: 10000,
+      statement_timeout: 10000,
+      keepAlive: true,
+      keepAliveInitialDelayMillis: 10000,
     });
 
     const adapter = new PrismaPg(pool);

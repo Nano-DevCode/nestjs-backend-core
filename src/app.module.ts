@@ -21,9 +21,19 @@ import { WebsocketsModule } from './websockets/websockets.module';
   imports: [
     ThrottlerModule.forRoot([
       {
-        name: 'default',
+        name: 'short',
+        ttl: 1000, // 1 segundo
+        limit: 20, // 20 req/segundo (ráfagas cortas)
+      },
+      {
+        name: 'medium',
+        ttl: 10000, // 10 segundos
+        limit: 80, // 80 req/10s (actividad continua)
+      },
+      {
+        name: 'long',
         ttl: 60000, // 60 segundos
-        limit: 60, // Máximo 60 peticiones por minuto por IP de forma global
+        limit: 300, // 300 req/minuto (tope de protección)
       },
     ]),
     BullModule.forRoot({
