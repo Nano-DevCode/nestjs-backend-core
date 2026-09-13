@@ -9,6 +9,7 @@ export {
   ApiOperation,
   ApiResponse,
   ApiProperty,
+  ApiPropertyOptional,
   ApiBearerAuth,
   ApiCookieAuth,
   ApiConsumes,

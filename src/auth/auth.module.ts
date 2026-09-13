@@ -11,6 +11,10 @@ import { PermissionsGuard } from './guards/permissions.guard';
 import { MailModule } from '../mail/mail.module';
 import { TwoFactorModule } from '../two-factor/two-factor.module';
 
+import { MobileAuthController } from './mobile-auth.controller';
+import { JwtMobileStrategy } from './strategies/jwt-mobile.strategy';
+import { JwtMobileAuthGuard } from './guards/jwt-mobile-auth.guard';
+
 import { PasswordService } from './password.service';
 import { AuthTokenService } from './auth-token.service';
 import { EmailVerificationService } from './email-verification.service';
@@ -22,12 +26,14 @@ import { EmailVerificationService } from './email-verification.service';
     MailModule,
     forwardRef(() => TwoFactorModule),
   ],
-  controllers: [AuthController],
+  controllers: [AuthController, MobileAuthController],
   providers: [
     AuthService,
     SessionService,
     JwtStrategy,
     JwtAuthGuard,
+    JwtMobileStrategy,
+    JwtMobileAuthGuard,
     RolesGuard,
     PermissionsGuard,
     PasswordService,
@@ -38,8 +44,10 @@ import { EmailVerificationService } from './email-verification.service';
     AuthService,
     SessionService,
     JwtStrategy,
-    PassportModule,
     JwtAuthGuard,
+    JwtMobileStrategy,
+    JwtMobileAuthGuard,
+    PassportModule,
     RolesGuard,
     PermissionsGuard,
     PasswordService,

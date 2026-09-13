@@ -118,6 +118,32 @@ export class AuthTokenService {
     };
   }
 
+  async createMobileTokens(
+    user: UserAuthContext,
+    existingTokenId?: string,
+  ): Promise<{
+    user: { id: string; email: string; roles: string[] };
+    accessToken: string;
+    refreshToken: string;
+  }> {
+    const tokenId = existingTokenId || uuidv4();
+    const { accessToken, refreshToken } = this.generateTokens(user, tokenId);
+
+    if (!existingTokenId) {
+      await this.sessionService.setSession(user.id, tokenId, 604800);
+    }
+
+    return {
+      user: {
+        id: user.id,
+        email: user.email,
+        roles: user.roles,
+      },
+      accessToken,
+      refreshToken,
+    };
+  }
+
   clearAuthCookies(res: Response): void {
     const getClearOpts = (opts: CookieOptions): CookieOptions => {
       const clearOpts = { ...opts };
