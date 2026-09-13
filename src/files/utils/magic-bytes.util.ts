@@ -114,7 +114,7 @@ export function validateFileMagicBytes(
  */
 export function sanitizeSafeFilename(
   name: string,
-  fallbackExt: string,
+  fallbackExt = '.bin',
 ): string {
   const rawExt = path.extname(name).toLowerCase();
   const ext = rawExt || fallbackExt;

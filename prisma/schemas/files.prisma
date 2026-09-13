@@ -1,0 +1,26 @@
+enum FileScanStatus {
+  PENDING
+  CLEAN
+  INFECTED
+  ERROR
+}
+
+model StoredFile {
+  id           String         @id @default(uuid())
+  key          String         @unique
+  bucket       String
+  originalName String         @map("original_name")
+  mimetype     String
+  size         Int
+  scanStatus   FileScanStatus @default(PENDING) @map("scan_status")
+  uploadedBy   String?        @map("uploaded_by")
+  createdAt    DateTime       @default(now()) @map("created_at")
+  updatedAt    DateTime       @updatedAt @map("updated_at")
+
+  user         User?          @relation(fields: [uploadedBy], references: [id], onDelete: SetNull)
+
+  @@index([uploadedBy])
+  @@index([scanStatus])
+  @@map("stored_files")
+}
+

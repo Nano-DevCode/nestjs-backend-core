@@ -8,6 +8,7 @@ import { apiReference } from '@scalar/nestjs-api-reference';
 import { AppModule } from './app.module';
 import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
+import compression from 'compression';
 import { json, urlencoded, Request, Response, NextFunction } from 'express';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
@@ -108,6 +109,7 @@ async function bootstrap() {
   app.use(json({ limit: '100kb' }));
   app.use(urlencoded({ extended: true, limit: '100kb' }));
   app.use(cookieParser());
+  app.use(compression());
 
   app.useGlobalPipes(
     new ValidationPipe({

@@ -1,12 +1,16 @@
-﻿import { Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { FilesService } from './files.service';
 import { FilesController } from './files.controller';
 import { VirusScanService } from './services/virus-scan.service';
 import { ImageProcessingService } from './services/image-processing.service';
 import { S3StorageService } from './services/s3-storage.service';
 
+import { PrismaModule } from '../prisma/prisma.module';
+import { MobileFilesController } from './mobile-files.controller';
+
 @Module({
-  controllers: [FilesController],
+  imports: [PrismaModule],
+  controllers: [FilesController, MobileFilesController],
   providers: [
     FilesService,
     VirusScanService,

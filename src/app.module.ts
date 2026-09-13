@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
-import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { ThrottlerModule } from '@nestjs/throttler';
+import { CustomThrottlerGuard } from './common/guards/custom-throttler.guard';
 import { BullModule } from '@nestjs/bullmq';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -16,6 +17,8 @@ import { HealthModule } from './health/health.module';
 import { TasksModule } from './tasks/tasks.module';
 import { FeatureFlagsModule } from './features/feature-flags.module';
 import { WebsocketsModule } from './websockets/websockets.module';
+import { MobileModule } from './mobile/mobile.module';
+import { NotificationsModule } from './notifications/notifications.module';
 
 @Module({
   imports: [
@@ -54,6 +57,8 @@ import { WebsocketsModule } from './websockets/websockets.module';
     TasksModule,
     FeatureFlagsModule,
     WebsocketsModule,
+    MobileModule,
+    NotificationsModule,
   ],
   controllers: [AppController],
   providers: [
@@ -61,7 +66,7 @@ import { WebsocketsModule } from './websockets/websockets.module';
     PrismaService,
     {
       provide: APP_GUARD,
-      useClass: ThrottlerGuard,
+      useClass: CustomThrottlerGuard,
     },
   ],
   exports: [PrismaService],

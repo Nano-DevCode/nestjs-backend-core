@@ -11,7 +11,9 @@ import {
   PutObjectCommand,
   GetObjectCommand,
   DeleteObjectCommand,
+  HeadObjectCommand,
 } from '@aws-sdk/client-s3';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { DEFAULT_BUCKET } from '../files.constants';
 
 @Injectable()
@@ -140,5 +142,63 @@ export class S3StorageService implements OnModuleInit {
 
   getFileUrl(_bucket: string, key: string): string {
     return `/api/files/view/${encodeURIComponent(key)}`;
+  }
+
+  async generatePresignedUploadUrl(
+    key: string,
+    bucket: string = DEFAULT_BUCKET,
+    contentType: string,
+    contentLength: number,
+    expiresInSeconds = 600,
+  ): Promise<{
+    uploadUrl: string;
+    key: string;
+    bucket: string;
+    expiresIn: number;
+    method: 'PUT';
+  }> {
+    await this.ensureBucketExists(bucket);
+
+    const command = new PutObjectCommand({
+      Bucket: bucket,
+      Key: key,
+      ContentType: contentType,
+      ContentLength: contentLength,
+    });
+
+    const rawUploadUrl = await getSignedUrl(this.s3Client, command, {
+      expiresIn: expiresInSeconds,
+    });
+
+    // En caso de que el cliente móvil deba conectarse a una IP/host externo accesible
+    const publicEndpoint = process.env.S3_PUBLIC_ENDPOINT;
+    const uploadUrl = publicEndpoint
+      ? rawUploadUrl.replace(this.endpoint, publicEndpoint)
+      : rawUploadUrl;
+
+    return {
+      uploadUrl,
+      key,
+      bucket,
+      expiresIn: expiresInSeconds,
+      method: 'PUT',
+    };
+  }
+
+  async objectExists(
+    bucket: string = DEFAULT_BUCKET,
+    key: string,
+  ): Promise<boolean> {
+    try {
+      await this.s3Client.send(
+        new HeadObjectCommand({
+          Bucket: bucket,
+          Key: key,
+        }),
+      );
+      return true;
+    } catch {
+      return false;
+    }
   }
 }
