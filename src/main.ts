@@ -121,8 +121,12 @@ async function bootstrap() {
 
   app.useGlobalFilters(new HttpExceptionFilter());
 
-  // 3. Configuración CORS defensiva y estricta
-  const allowedOrigins = (process.env.FRONTEND_URL || 'http://localhost:5173')
+  // 3. Configuración CORS defensiva y flexible para desarrollo
+  const isProduction = process.env.NODE_ENV === 'production';
+  const configuredOrigins = (
+    process.env.FRONTEND_URL ||
+    'http://localhost:5173,http://localhost:5174,http://localhost:3000'
+  )
     .split(',')
     .map((origin) => origin.trim())
     .filter((origin) => origin.length > 0);
@@ -132,15 +136,32 @@ async function bootstrap() {
       origin: string | undefined,
       callback: (err: Error | null, allow?: boolean) => void,
     ) => {
-      if (!origin || allowedOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        callback(
-          new Error(
-            `Acceso denegado por política CORS: origen '${origin}' no autorizado`,
-          ),
-        );
+      // 1. Peticiones sin cabecera Origin (móviles nativos, curl, Postman, server-to-server)
+      if (!origin) {
+        return callback(null, true);
       }
+
+      // 2. Orígenes explícitamente configurados
+      if (configuredOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+
+      // 3. En entorno de desarrollo, permitir puertos dinámicos en localhost o 127.0.0.1
+      if (!isProduction) {
+        const isLocalhost = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(
+          origin,
+        );
+        if (isLocalhost) {
+          return callback(null, true);
+        }
+      }
+
+      // 4. Rechazar orígenes no autorizados
+      return callback(
+        new Error(
+          `Acceso denegado por política CORS: origen '${origin}' no autorizado`,
+        ),
+      );
     },
     credentials: true,
     methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
@@ -150,6 +171,9 @@ async function bootstrap() {
       'Authorization',
       'X-Requested-With',
       'Idempotency-Key',
+      'X-API-Key',
+      'x-platform',
+      'x-app-version',
     ],
     exposedHeaders: ['Content-Range', 'X-Content-Range'],
     maxAge: 86400,
