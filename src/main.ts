@@ -13,6 +13,8 @@ import { json, urlencoded, Request, Response, NextFunction } from 'express';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { LogsService } from './logs/logs.service';
+import Redis from 'ioredis';
+import { REDIS_CLIENT } from './redis/redis.constants';
 
 interface HttpServerWithTimeout {
   keepAliveTimeout: number;
@@ -125,7 +127,8 @@ async function bootstrap() {
   );
 
   const logsService = app.get(LogsService);
-  app.useGlobalFilters(new HttpExceptionFilter(logsService));
+  const redis = app.get<Redis>(REDIS_CLIENT);
+  app.useGlobalFilters(new HttpExceptionFilter(logsService, redis));
 
   // 3. Configuración CORS defensiva y flexible para desarrollo
   const isProduction = process.env.NODE_ENV === 'production';

@@ -7,6 +7,7 @@ import {
   Logger,
 } from '@nestjs/common';
 import type { Request, Response } from 'express';
+import type Redis from 'ioredis';
 import { Prisma, LogLevel } from '../../../prisma/generated/prisma/client';
 import type { LogsService } from '../../logs/logs.service';
 
@@ -40,7 +41,10 @@ function sanitizePublicMessage(
 export class HttpExceptionFilter implements ExceptionFilter {
   private readonly logger = new Logger(HttpExceptionFilter.name);
 
-  constructor(private readonly logsService?: LogsService) {}
+  constructor(
+    private readonly logsService?: LogsService,
+    private readonly redis?: Redis,
+  ) {}
 
   catch(exception: unknown, host: ArgumentsHost): void {
     const ctx = host.switchToHttp();
@@ -142,11 +146,43 @@ export class HttpExceptionFilter implements ExceptionFilter {
       });
     }
 
+    // Telemetría operativa: Contador en Redis de peticiones bloqueadas por rate-limiting (429)
+    if (statusCode === HttpStatus.TOO_MANY_REQUESTS && this.redis) {
+      void this.recordThrottledTelemetry(request);
+    }
+
     response.status(statusCode).json({
       statusCode,
       message,
       timestamp: new Date().toISOString(),
       path: request.url,
     });
+  }
+
+  private async recordThrottledTelemetry(request: Request): Promise<void> {
+    if (!this.redis) return;
+    try {
+      const now = new Date();
+      const hourKey = `telemetry:throttled:429:${now.toISOString().slice(0, 13)}`;
+      await this.redis.incr(hourKey);
+      await this.redis.expire(hourKey, 7200);
+
+      const forwarded = request.headers?.['x-forwarded-for'];
+      const clientIp =
+        typeof forwarded === 'string'
+          ? forwarded.split(',')[0]?.trim()
+          : request.ip || request.socket?.remoteAddress;
+
+      if (clientIp && clientIp !== 'unknown') {
+        await this.redis.zadd('telemetry:throttled:ips', Date.now(), clientIp);
+        await this.redis.zremrangebyscore(
+          'telemetry:throttled:ips',
+          '-inf',
+          Date.now() - 3600000,
+        );
+      }
+    } catch {
+      // Silenciar errores de telemetría para no alterar la respuesta del cliente
+    }
   }
 }

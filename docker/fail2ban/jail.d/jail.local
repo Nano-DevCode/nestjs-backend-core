@@ -69,3 +69,4 @@ logpath  = /var/log/nginx/access.log
 maxretry = 5
 findtime = 60
 bantime  = 3600
+

@@ -136,6 +136,21 @@ export class NotificationGateway
     );
   }
 
+  /**
+   * Retorna la cantidad de sockets conectados actualmente en el gateway y namespaces
+   */
+  getConnectedSocketsCount(): number {
+    if (!this.server) return 0;
+    try {
+      const rootSockets = this.server.sockets?.sockets?.size ?? 0;
+      const notifNamespace = this.server.of('/realtime/notifications');
+      const notifSockets = notifNamespace?.sockets?.size ?? 0;
+      return Math.max(rootSockets, notifSockets);
+    } catch {
+      return 0;
+    }
+  }
+
   private async authenticateClient(
     client: AuthenticatedSocket,
   ): Promise<UserAuthContext | null> {

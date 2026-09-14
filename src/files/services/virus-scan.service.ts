@@ -1,4 +1,4 @@
-﻿import {
+import {
   Injectable,
   Logger,
   BadRequestException,
@@ -40,6 +40,10 @@ export class VirusScanService implements OnModuleInit {
         `No fue posible conectar con ClamAV en ${host}:${port} (${(error as Error).message}). Se operará en contingencia si el contenedor está iniciando.`,
       );
     }
+  }
+
+  getIsAvailable(): boolean {
+    return this.isAvailable;
   }
 
   async scanBuffer(buffer: Buffer): Promise<void> {
