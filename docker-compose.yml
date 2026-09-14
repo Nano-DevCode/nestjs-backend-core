@@ -1,3 +1,9 @@
+x-logging: &default-logging
+  driver: 'json-file'
+  options:
+    max-size: '20m'
+    max-file: '5'
+
 services:
   # ----------------------------------------------------------------------------
   # 1. Base de Datos PostgreSQL 16
@@ -34,6 +40,7 @@ services:
       retries: 5
     networks:
       - sistema_network
+    logging: *default-logging
 
   # ----------------------------------------------------------------------------
   # 1.1 Base de Datos PostgreSQL 16 Réplica de Lectura (Perfil Opcional: with-replica)
@@ -68,6 +75,7 @@ services:
       retries: 5
     networks:
       - sistema_network
+    logging: *default-logging
 
   # ----------------------------------------------------------------------------
   # 2. Redis 7 (Caché, Rate-Limiting, Blacklist y Tokens 2FA)
@@ -88,6 +96,7 @@ services:
       retries: 5
     networks:
       - sistema_network
+    logging: *default-logging
 
   # ----------------------------------------------------------------------------
   # 3. Antivirus ClamAV Daemon en Caliente
@@ -100,6 +109,7 @@ services:
       - '127.0.0.1:${CLAMAV_PORT:-3310}:3310'
     networks:
       - sistema_network
+    logging: *default-logging
 
   # ----------------------------------------------------------------------------
   # 4. Almacenamiento Compatible S3 (SeaweedFS)
@@ -119,6 +129,7 @@ services:
       - seaweedfs_data:/data
     networks:
       - sistema_network
+    logging: *default-logging
 
   # ----------------------------------------------------------------------------
   # 5. Aplicación NestJS Backend (Producción)
@@ -171,6 +182,7 @@ services:
       - FRONTEND_URL=${FRONTEND_URL:-http://localhost:5173}
     networks:
       - sistema_network
+    logging: *default-logging
 
   # ----------------------------------------------------------------------------
   # 6. Respaldo Automático de PostgreSQL 16 (pg_dump + gzip + rotación cron)
@@ -197,6 +209,7 @@ services:
       - ./backups/postgres:/backups
     networks:
       - sistema_network
+    logging: *default-logging
 
   # ----------------------------------------------------------------------------
   # 7. Respaldo Automático de Almacenamiento (SeaweedFS / S3 Files + rotación)
@@ -219,6 +232,7 @@ services:
       - ./backups/storage:/backups
     networks:
       - sistema_network
+    logging: *default-logging
 
   # ----------------------------------------------------------------------------
   # 8. Frontend SPA Web (Nginx Runner)
@@ -235,6 +249,7 @@ services:
       - VITE_API_URL=/api
     networks:
       - sistema_network
+    logging: *default-logging
 
   # ----------------------------------------------------------------------------
   # 9. NGINX Reverse Proxy Perimetral con SSL/TLS
@@ -257,6 +272,7 @@ services:
       - frontend
     networks:
       - sistema_network
+    logging: *default-logging
 
   # ----------------------------------------------------------------------------
   # 10. Certbot (Emisión y Renovación Automática Let's Encrypt cada 12 horas)
@@ -271,6 +287,7 @@ services:
     entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
     networks:
       - sistema_network
+    logging: *default-logging
 
   # ----------------------------------------------------------------------------
   # 11. Fail2Ban: Detección y Bloqueo de Ataques en Firewall (DOCKER-USER)
@@ -293,6 +310,7 @@ services:
       - ./docker/fail2ban/action.d:/etc/fail2ban/action.d:ro
       - nginx_logs:/var/log/nginx:ro
       - fail2ban_data:/data
+    logging: *default-logging
 
 volumes:
   postgres_data:

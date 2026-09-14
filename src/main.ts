@@ -1,5 +1,5 @@
 import { NestFactory } from '@nestjs/core';
-import { ValidationPipe } from '@nestjs/common';
+import { ValidationPipe, type LogLevel } from '@nestjs/common';
 import {
   DocumentBuilder,
   SwaggerModule as OpenApiModule,
@@ -22,7 +22,14 @@ interface HttpServerWithTimeout {
 }
 
 async function bootstrap() {
-  const app = await NestFactory.create<NestExpressApplication>(AppModule);
+  const isProduction = process.env.NODE_ENV === 'production';
+  const logLevels: LogLevel[] = isProduction
+    ? ['error', 'warn']
+    : ['log', 'error', 'warn', 'debug', 'verbose'];
+
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
+    logger: logLevels,
+  });
 
   // Confianza en el Reverse Proxy perimetral (NGINX) para procesar correctamente
   // las cabeceras X-Forwarded-For, X-Forwarded-Proto e IPs reales de clientes
@@ -131,7 +138,6 @@ async function bootstrap() {
   app.useGlobalFilters(new HttpExceptionFilter(logsService, redis));
 
   // 3. Configuración CORS defensiva y flexible para desarrollo
-  const isProduction = process.env.NODE_ENV === 'production';
   const configuredOrigins = (
     process.env.FRONTEND_URL ||
     'http://localhost:5173,http://localhost:5174,http://localhost:3000'
