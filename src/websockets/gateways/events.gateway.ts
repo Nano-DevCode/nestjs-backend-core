@@ -29,7 +29,12 @@ import type { UserAuthContext } from '../../auth/interfaces/auth.interface';
 @UseFilters(WsAllExceptionsFilter)
 @WebSocketGateway({
   cors: {
-    origin: '*',
+    origin: (
+      _origin: string | undefined,
+      callback: (err: Error | null, allow?: boolean) => void,
+    ) => {
+      callback(null, true);
+    },
     credentials: true,
   },
   namespace: '/realtime',

@@ -37,6 +37,18 @@ export class NotificationQueryDto {
   })
   @IsBoolean()
   isRead?: boolean;
+
+  @ApiPropertyOptional({
+    description: 'Filtrar exclusivamente no leídas',
+  })
+  @IsOptional()
+  @Transform(({ value }: { value: unknown }) => {
+    if (value === 'true' || value === true) return true;
+    if (value === 'false' || value === false) return false;
+    return undefined;
+  })
+  @IsBoolean()
+  unreadOnly?: boolean;
 }
 
 export class CreateNotificationDto {

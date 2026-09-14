@@ -48,12 +48,16 @@ export class NotificationsService {
   }
 
   async getUserNotifications(userId: string, query: NotificationQueryDto) {
-    const { page = 1, limit = 20, isRead } = query;
+    const { page = 1, limit = 20, isRead, unreadOnly } = query;
     const skip = (page - 1) * limit;
+
+    const effectiveIsRead = unreadOnly ? false : isRead;
 
     const where: Prisma.NotificationWhereInput = {
       userId,
-      ...(typeof isRead === 'boolean' ? { isRead } : {}),
+      ...(typeof effectiveIsRead === 'boolean'
+        ? { isRead: effectiveIsRead }
+        : {}),
     };
 
     const [data, total, unreadCount] = await Promise.all([
