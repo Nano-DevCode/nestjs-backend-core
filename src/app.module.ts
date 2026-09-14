@@ -19,6 +19,8 @@ import { FeatureFlagsModule } from './features/feature-flags.module';
 import { WebsocketsModule } from './websockets/websockets.module';
 import { MobileModule } from './mobile/mobile.module';
 import { NotificationsModule } from './notifications/notifications.module';
+import { PdfModule } from './pdf/pdf.module';
+import { ApiKeysModule } from './api-keys/api-keys.module';
 
 @Module({
   imports: [
@@ -59,6 +61,8 @@ import { NotificationsModule } from './notifications/notifications.module';
     WebsocketsModule,
     MobileModule,
     NotificationsModule,
+    PdfModule,
+    ApiKeysModule,
   ],
   controllers: [AppController],
   providers: [
