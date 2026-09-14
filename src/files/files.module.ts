@@ -7,9 +7,10 @@ import { S3StorageService } from './services/s3-storage.service';
 
 import { PrismaModule } from '../prisma/prisma.module';
 import { MobileFilesController } from './mobile-files.controller';
+import { LogsModule } from '../logs/logs.module';
 
 @Module({
-  imports: [PrismaModule],
+  imports: [PrismaModule, LogsModule],
   controllers: [FilesController, MobileFilesController],
   providers: [
     FilesService,

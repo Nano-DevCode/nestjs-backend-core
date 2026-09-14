@@ -28,3 +28,4 @@ model SystemLog {
   @@index([userId])
   @@map("system_logs")
 }
+

@@ -3,6 +3,7 @@ import {
   Logger,
   OnModuleInit,
   NotFoundException,
+  Optional,
 } from '@nestjs/common';
 import {
   S3Client,
@@ -15,6 +16,8 @@ import {
 } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { DEFAULT_BUCKET } from '../files.constants';
+import type { LogsService } from '../../logs/logs.service';
+import { LogLevel } from '../../../prisma/generated/prisma/client';
 
 @Injectable()
 export class S3StorageService implements OnModuleInit {
@@ -22,7 +25,7 @@ export class S3StorageService implements OnModuleInit {
   private readonly s3Client: S3Client;
   private readonly endpoint: string;
 
-  constructor() {
+  constructor(@Optional() private readonly logsService?: LogsService) {
     this.endpoint = process.env['S3_ENDPOINT'] || 'http://localhost:8333';
     const region = process.env['S3_REGION'] || 'us-east-1';
     const accessKeyId = process.env['S3_ACCESS_KEY'] || 'tu_access_key';
@@ -124,14 +127,26 @@ export class S3StorageService implements OnModuleInit {
         contentLength: response.ContentLength,
       };
     } catch (error) {
+      const isNotFound =
+        (error as { name?: string }).name === 'NoSuchKey' ||
+        (error as { $metadata?: { httpStatusCode?: number } }).$metadata
+          ?.httpStatusCode === 404;
+
       this.logger.error(
         `Error al obtener archivo ${bucket}/${key}: ${(error as Error).message}`,
       );
-      if (
-        (error as { name?: string }).name === 'NoSuchKey' ||
-        (error as { $metadata?: { httpStatusCode?: number } }).$metadata
-          ?.httpStatusCode === 404
-      ) {
+
+      this.logsService?.enqueueBackendLog({
+        level: isNotFound ? LogLevel.WARN : LogLevel.ERROR,
+        context: 'S3StorageService',
+        message: isNotFound
+          ? `Archivo solicitado no existe en almacenamiento: ${bucket}/${key}`
+          : `Fallo al comunicarse con almacenamiento S3/SeaweedFS: ${(error as Error).message}`,
+        stackTrace: (error as Error).stack,
+        metadata: { bucket, key, isNotFound },
+      });
+
+      if (isNotFound) {
         throw new NotFoundException(
           `El archivo '${key}' no existe en el almacenamiento`,
         );
