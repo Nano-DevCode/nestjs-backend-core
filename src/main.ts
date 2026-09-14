@@ -12,6 +12,7 @@ import compression from 'compression';
 import { json, urlencoded, Request, Response, NextFunction } from 'express';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
+import { LogsService } from './logs/logs.service';
 
 interface HttpServerWithTimeout {
   keepAliveTimeout: number;
@@ -119,7 +120,8 @@ async function bootstrap() {
     }),
   );
 
-  app.useGlobalFilters(new HttpExceptionFilter());
+  const logsService = app.get(LogsService);
+  app.useGlobalFilters(new HttpExceptionFilter(logsService));
 
   // 3. Configuración CORS defensiva y flexible para desarrollo
   const isProduction = process.env.NODE_ENV === 'production';

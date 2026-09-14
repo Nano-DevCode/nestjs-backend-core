@@ -21,6 +21,7 @@ import { MobileModule } from './mobile/mobile.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { PdfModule } from './pdf/pdf.module';
 import { ApiKeysModule } from './api-keys/api-keys.module';
+import { LogsModule } from './logs/logs.module';
 
 @Module({
   imports: [
@@ -63,6 +64,7 @@ import { ApiKeysModule } from './api-keys/api-keys.module';
     NotificationsModule,
     PdfModule,
     ApiKeysModule,
+    LogsModule,
   ],
   controllers: [AppController],
   providers: [

@@ -7,7 +7,8 @@ import {
   Logger,
 } from '@nestjs/common';
 import type { Request, Response } from 'express';
-import { Prisma } from '../../../prisma/generated/prisma/client';
+import { Prisma, LogLevel } from '../../../prisma/generated/prisma/client';
+import type { LogsService } from '../../logs/logs.service';
 
 /**
  * Sanitiza cualquier mensaje devuelto al cliente para evitar fugas de
@@ -38,6 +39,8 @@ function sanitizePublicMessage(
 @Catch()
 export class HttpExceptionFilter implements ExceptionFilter {
   private readonly logger = new Logger(HttpExceptionFilter.name);
+
+  constructor(private readonly logsService?: LogsService) {}
 
   catch(exception: unknown, host: ArgumentsHost): void {
     const ctx = host.switchToHttp();
@@ -116,6 +119,27 @@ export class HttpExceptionFilter implements ExceptionFilter {
       statusCode = HttpStatus.INTERNAL_SERVER_ERROR;
       message =
         'Error interno del servidor. Por favor, intenta de nuevo más tarde.';
+    }
+
+    // Captura automática de excepciones no controladas 5xx enviándolas directamente a la cola de logs
+    if (statusCode >= HttpStatus.INTERNAL_SERVER_ERROR && this.logsService) {
+      const err = exception as Error;
+      this.logsService.enqueueBackendLog({
+        level: LogLevel.ERROR,
+        context: 'GlobalExceptionFilter',
+        message:
+          err?.message ||
+          (typeof message === 'string' ? message : JSON.stringify(message)),
+        stackTrace: err?.stack,
+        metadata: {
+          url: request.url,
+          method: request.method,
+          statusCode,
+          ip: request.ip || request.socket?.remoteAddress,
+          userAgent: request.headers?.['user-agent'],
+        },
+        userId: (request as unknown as { user?: { id?: string } }).user?.id,
+      });
     }
 
     response.status(statusCode).json({

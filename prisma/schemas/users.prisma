@@ -11,6 +11,7 @@ model User {
   auditLogs          AuditLog[]
   notifications      Notification[]
   files              StoredFile[]
+  systemLogs         SystemLog[]
   createdAt DateTime   @default(now()) @map("created_at")
   updatedAt DateTime   @updatedAt @map("updated_at")
 

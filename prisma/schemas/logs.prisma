@@ -1,0 +1,30 @@
+enum LogSource {
+  BACKEND
+  FRONTEND
+}
+
+enum LogLevel {
+  INFO
+  WARN
+  ERROR
+  FATAL
+}
+
+model SystemLog {
+  id         String     @id @default(uuid())
+  source     LogSource
+  level      LogLevel
+  context    String
+  message    String
+  stackTrace String?    @map("stack_trace")
+  metadata   Json?
+  userId     String?    @map("user_id")
+  createdAt  DateTime   @default(now()) @map("created_at")
+
+  user       User?      @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([source, level])
+  @@index([createdAt])
+  @@index([userId])
+  @@map("system_logs")
+}
