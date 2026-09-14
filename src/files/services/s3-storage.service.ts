@@ -24,6 +24,7 @@ export class S3StorageService implements OnModuleInit {
   private readonly logger = new Logger(S3StorageService.name);
   private readonly s3Client: S3Client;
   private readonly endpoint: string;
+  private readonly verifiedBuckets = new Set<string>();
 
   constructor(@Optional() private readonly logsService?: LogsService) {
     this.endpoint = process.env['S3_ENDPOINT'] || 'http://localhost:8333';
@@ -48,18 +49,48 @@ export class S3StorageService implements OnModuleInit {
   }
 
   async ensureBucketExists(bucket: string): Promise<void> {
+    if (this.verifiedBuckets.has(bucket)) {
+      return;
+    }
+
     try {
       await this.s3Client.send(new HeadBucketCommand({ Bucket: bucket }));
-    } catch {
+      this.verifiedBuckets.add(bucket);
+    } catch (error: unknown) {
+      const err = error as Error & {
+        name?: string;
+        code?: string;
+        $metadata?: { httpStatusCode?: number };
+      };
+      const statusCode = err.$metadata?.httpStatusCode;
+      const isNotFound = err.name === 'NotFound' || statusCode === 404;
+
+      if (!isNotFound) {
+        const detail =
+          err.message ||
+          err.code ||
+          err.name ||
+          'Conexión rechazada o endpoint inaccesible';
+        this.logger.warn(
+          `No se pudo conectar con SeaweedFS/S3 en '${this.endpoint}' al verificar bucket '${bucket}': ${detail}`,
+        );
+        return;
+      }
+
       this.logger.log(
         `Bucket '${bucket}' no encontrado. Creando automáticamente en SeaweedFS...`,
       );
       try {
         await this.s3Client.send(new CreateBucketCommand({ Bucket: bucket }));
         this.logger.log(`Bucket '${bucket}' creado exitosamente.`);
+        this.verifiedBuckets.add(bucket);
       } catch (createErr) {
+        const createDetail =
+          (createErr as Error).message ||
+          (createErr as { code?: string }).code ||
+          'Error desconocido';
         this.logger.warn(
-          `No se pudo crear automáticamente el bucket '${bucket}': ${(createErr as Error).message}`,
+          `No se pudo crear automáticamente el bucket '${bucket}': ${createDetail}`,
         );
       }
     }

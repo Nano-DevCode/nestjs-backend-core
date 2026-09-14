@@ -96,8 +96,8 @@ services:
     image: clamav/clamav:stable
     container_name: sistema_clamav
     restart: unless-stopped
-    expose:
-      - '3310'
+    ports:
+      - '127.0.0.1:${CLAMAV_PORT:-3310}:3310'
     networks:
       - sistema_network
 
@@ -108,9 +108,9 @@ services:
     image: chrislusf/seaweedfs:latest
     container_name: sistema_seaweedfs
     restart: unless-stopped
-    expose:
-      - '8333'
-      - '9333'
+    ports:
+      - '127.0.0.1:${S3_PORT:-8333}:8333'
+      - '127.0.0.1:${S3_GRPC_PORT:-9333}:9333'
     command: 'server -dir=/data -s3 -s3.port=8333 -s3.allowEmptyFolder=true'
     environment:
       - WEED_S3_KEY_ID=${S3_ACCESS_KEY:-tu_access_key}
