@@ -11,20 +11,8 @@ describe('TelemetryController', () => {
     timestamp: new Date().toISOString(),
     uptimeSeconds: 120,
     queues: {
-      pdf: {
-        waiting: 0,
-        active: 1,
-        failed: 0,
-        completed: 5,
-        status: 'healthy',
-      },
-      logs: {
-        waiting: 2,
-        active: 0,
-        failed: 0,
-        completed: 25,
-        status: 'healthy',
-      },
+      pdf: { waiting: 0, active: 1, failed: 0, completed: 5, status: 'healthy' },
+      logs: { waiting: 2, active: 0, failed: 0, completed: 25, status: 'healthy' },
       totalWaiting: 2,
       totalActive: 1,
       totalFailed: 0,
@@ -82,3 +70,4 @@ describe('TelemetryController', () => {
     expect(result.security.firewallStatus).toBe('active');
   });
 });
+

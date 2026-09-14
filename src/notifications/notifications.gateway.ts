@@ -53,6 +53,9 @@ export class NotificationGateway
       const notifNamespace = server.of('/realtime/notifications');
       notifNamespace.on('connection', async (socket: AuthenticatedSocket) => {
         await this.handleConnection(socket);
+        socket.on('authenticate', async (data: { token?: string }) => {
+          return await this.handleManualAuth(socket, data);
+        });
         socket.on('disconnect', () => this.handleDisconnect(socket));
       });
     } catch (err) {
@@ -120,13 +123,13 @@ export class NotificationGateway
 
     // 1. Emitir al namespace raíz ('/')
     this.server.to(room).emit('notification', notification);
+    this.server.to(room).emit('notification:new', notification);
 
     // 2. Emitir también al namespace '/realtime/notifications' si hay clientes suscritos allí
     try {
-      this.server
-        .of('/realtime/notifications')
-        .to(room)
-        .emit('notification', notification);
+      const notifNamespace = this.server.of('/realtime/notifications');
+      notifNamespace.to(room).emit('notification', notification);
+      notifNamespace.to(room).emit('notification:new', notification);
     } catch {
       // Ignorar si el sub-namespace no tiene clientes activos
     }
@@ -145,7 +148,7 @@ export class NotificationGateway
       const rootSockets = this.server.sockets?.sockets?.size ?? 0;
       const notifNamespace = this.server.of('/realtime/notifications');
       const notifSockets = notifNamespace?.sockets?.size ?? 0;
-      return Math.max(rootSockets, notifSockets);
+      return rootSockets + notifSockets;
     } catch {
       return 0;
     }
