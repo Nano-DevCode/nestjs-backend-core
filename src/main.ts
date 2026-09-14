@@ -22,6 +22,10 @@ interface HttpServerWithTimeout {
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
+  // Confianza en el Reverse Proxy perimetral (NGINX) para procesar correctamente
+  // las cabeceras X-Forwarded-For, X-Forwarded-Proto e IPs reales de clientes
+  app.set('trust proxy', 1);
+
   app.enableShutdownHooks();
 
   app.setGlobalPrefix('api', {

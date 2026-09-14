@@ -68,3 +68,11 @@ skills-lock.json
 # Windows thumbnails
 Thumbs.db
 
+# SSL Certificates & Certbot runtime state
+*.pem
+docker/certbot/conf/live/
+docker/certbot/conf/archive/
+docker/certbot/conf/renewal/
+docker/certbot/www/*
+!docker/certbot/www/.gitkeep
+

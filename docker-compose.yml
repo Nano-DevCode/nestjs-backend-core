@@ -96,8 +96,8 @@ services:
     image: clamav/clamav:stable
     container_name: sistema_clamav
     restart: unless-stopped
-    ports:
-      - '${CLAMAV_PORT:-3310}:3310'
+    expose:
+      - '3310'
     networks:
       - sistema_network
 
@@ -108,9 +108,9 @@ services:
     image: chrislusf/seaweedfs:latest
     container_name: sistema_seaweedfs
     restart: unless-stopped
-    ports:
-      - '8333:8333'
-      - '9333:9333'
+    expose:
+      - '8333'
+      - '9333'
     command: 'server -dir=/data -s3 -s3.port=8333 -s3.allowEmptyFolder=true'
     environment:
       - WEED_S3_KEY_ID=${S3_ACCESS_KEY:-tu_access_key}
@@ -129,8 +129,8 @@ services:
       dockerfile: Dockerfile
     container_name: sistema_api
     restart: unless-stopped
-    ports:
-      - '${PORT:-3000}:3000'
+    expose:
+      - '3000'
     depends_on:
       postgres-db:
         condition: service_healthy
@@ -220,11 +220,87 @@ services:
     networks:
       - sistema_network
 
+  # ----------------------------------------------------------------------------
+  # 8. Frontend SPA Web (Nginx Runner)
+  # ----------------------------------------------------------------------------
+  frontend:
+    build:
+      context: ../Sistema_Front
+      dockerfile: Dockerfile
+    container_name: sistema_frontend
+    restart: unless-stopped
+    expose:
+      - '80'
+    environment:
+      - VITE_API_URL=/api
+    networks:
+      - sistema_network
+
+  # ----------------------------------------------------------------------------
+  # 9. NGINX Reverse Proxy Perimetral con SSL/TLS
+  # ----------------------------------------------------------------------------
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: sistema_nginx
+    restart: always
+    ports:
+      - '80:80'
+      - '443:443'
+    volumes:
+      - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./docker/nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./docker/certbot/conf:/etc/letsencrypt:ro
+      - ./docker/certbot/www:/var/www/certbot:ro
+      - nginx_logs:/var/log/nginx
+    depends_on:
+      - api
+      - frontend
+    networks:
+      - sistema_network
+
+  # ----------------------------------------------------------------------------
+  # 10. Certbot (Emisión y Renovación Automática Let's Encrypt cada 12 horas)
+  # ----------------------------------------------------------------------------
+  certbot:
+    image: certbot/certbot:latest
+    container_name: sistema_certbot
+    restart: unless-stopped
+    volumes:
+      - ./docker/certbot/conf:/etc/letsencrypt
+      - ./docker/certbot/www:/var/www/certbot
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
+    networks:
+      - sistema_network
+
+  # ----------------------------------------------------------------------------
+  # 11. Fail2Ban: Detección y Bloqueo de Ataques en Firewall (DOCKER-USER)
+  # ----------------------------------------------------------------------------
+  fail2ban:
+    image: crazymax/fail2ban:latest
+    container_name: sistema_fail2ban
+    restart: unless-stopped
+    network_mode: "host"
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    environment:
+      - TZ=America/Mexico_City
+      - F2B_LOG_LEVEL=INFO
+      - F2B_DB_PURGE_AGE=1d
+    volumes:
+      - ./docker/fail2ban/jail.d:/etc/fail2ban/jail.d:ro
+      - ./docker/fail2ban/filter.d:/etc/fail2ban/filter.d:ro
+      - ./docker/fail2ban/action.d:/etc/fail2ban/action.d:ro
+      - nginx_logs:/var/log/nginx:ro
+      - fail2ban_data:/data
+
 volumes:
   postgres_data:
   postgres_replica_data:
   redis_data:
   seaweedfs_data:
+  nginx_logs:
+  fail2ban_data:
 
 networks:
   sistema_network:

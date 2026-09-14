@@ -1,0 +1,71 @@
+# ==============================================================================
+# CONFIGURACIÓN MAESTRA DE JAULAS DE FAIL2BAN PARA NGINX & DOCKER
+# ==============================================================================
+
+[DEFAULT]
+# Duración del bloqueo por defecto: 1 hora
+bantime  = 3600
+
+# Ventana de observación: 10 minutos
+findtime = 600
+
+# Intentos antes de ejecutar la acción de bloqueo
+maxretry = 5
+
+# Mecanismo de lectura de logs
+backend = auto
+
+# Acción global sobre la cadena DOCKER-USER de iptables
+banaction = iptables-dockeruser
+action = %(banaction)s[name=%(__name__)s, port="%(port)s", protocol="%(protocol)s"]
+
+# Direcciones IP y subredes locales excluidas del bloqueo (Whitelist)
+ignoreip = 127.0.0.1/8 ::1 10.0.0.0/8 172.16.0.0/12 192.168.0.0/16
+
+# ------------------------------------------------------------------------------
+# Jaula 1: Ataques de Fuerza Bruta en Autenticación HTTP (Basic Auth Docs / Web)
+# ------------------------------------------------------------------------------
+[nginx-http-auth]
+enabled  = true
+port     = http,https
+filter   = nginx-http-auth
+logpath  = /var/log/nginx/error.log
+maxretry = 5
+findtime = 600
+bantime  = 3600
+
+# ------------------------------------------------------------------------------
+# Jaula 2: Detección y Neutralización Inmediata de Bots Escaneadores
+# ------------------------------------------------------------------------------
+[nginx-botsearch]
+enabled  = true
+port     = http,https
+filter   = nginx-botsearch
+logpath  = /var/log/nginx/access.log
+maxretry = 2
+findtime = 300
+bantime  = 86400
+
+# ------------------------------------------------------------------------------
+# Jaula 3: Búsqueda Maliciosa de Archivos Críticos (.env, .git, scripts de ataque)
+# ------------------------------------------------------------------------------
+[nginx-bad-requests]
+enabled  = true
+port     = http,https
+filter   = nginx-bad-requests
+logpath  = /var/log/nginx/access.log
+maxretry = 8
+findtime = 60
+bantime  = 3600
+
+# ------------------------------------------------------------------------------
+# Jaula 4: Mitigación de Bombardeo (Ráfagas de HTTP 429 Too Many Requests)
+# ------------------------------------------------------------------------------
+[nginx-limit-req]
+enabled  = true
+port     = http,https
+filter   = nginx-limit-req
+logpath  = /var/log/nginx/access.log
+maxretry = 5
+findtime = 60
+bantime  = 3600
