@@ -8,6 +8,7 @@ import {
   UseGuards,
   Inject,
   forwardRef,
+  UnauthorizedException,
 } from '@nestjs/common';
 import type { Request, Response } from 'express';
 import { AuthGuard } from '@nestjs/passport';
@@ -68,13 +69,31 @@ export class TwoFactorController {
   @Post('authenticate')
   @Throttle({ default: { limit: 5, ttl: 60000 } })
   async authenticate(
+    @Req() req: Request,
     @Body() dto: TwoFactorAuthDto,
     @Res({ passthrough: true }) res: Response,
   ) {
+    const cookies = req.cookies as Record<string, string> | undefined;
+    const tempToken = dto.tempToken || cookies?.['temp_2fa_token'];
+
+    if (!tempToken) {
+      throw new UnauthorizedException(
+        'El identificador temporal 2FA es requerido o ha expirado.',
+      );
+    }
+
     const challenge = await this.twoFactorService.verifyPendingChallenge(
-      dto.tempToken,
+      tempToken,
       dto.code,
     );
+
+    // Limpiar cookie temporal 2FA tras autenticación satisfactoria
+    res.clearCookie('temp_2fa_token', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      path: '/',
+    });
 
     return this.authService.complete2FALogin(
       challenge.userId,

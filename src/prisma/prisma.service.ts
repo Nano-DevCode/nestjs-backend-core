@@ -73,14 +73,25 @@ export class PrismaService
   }
 
   constructor() {
-    const dbPassword = process.env['DB_PASSWORD'];
-    if (!dbPassword && process.env['NODE_ENV'] === 'production') {
-      throw new Error('FATAL: DB_PASSWORD no está configurado en producción.');
-    }
-
+    let dbPassword = process.env['DB_PASSWORD'];
     const connectionString =
       process.env['DATABASE_URL'] ||
       `postgresql://${process.env['DB_USER'] || 'postgres'}:${dbPassword || ''}@localhost:${process.env['DB_PORT'] || 5432}/${process.env['DB_NAME'] || 'sistema'}?schema=public`;
+
+    if (!dbPassword && connectionString) {
+      try {
+        const parsed = new URL(connectionString);
+        if (parsed.password) {
+          dbPassword = decodeURIComponent(parsed.password);
+        }
+      } catch {
+        // Fallback silencioso si no es una URL parseable
+      }
+    }
+
+    if (!dbPassword && process.env['NODE_ENV'] === 'production') {
+      throw new Error('FATAL: DB_PASSWORD no está configurado en producción.');
+    }
 
     const poolMax = Number(process.env['DB_POOL_MAX']) || 25;
     const poolMin = Number(process.env['DB_POOL_MIN']) || 5;

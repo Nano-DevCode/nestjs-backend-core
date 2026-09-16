@@ -15,6 +15,13 @@ import { MobileAuthController } from './mobile-auth.controller';
 import { JwtMobileStrategy } from './strategies/jwt-mobile.strategy';
 import { JwtMobileAuthGuard } from './guards/jwt-mobile-auth.guard';
 
+import { SocialAuthController } from './social-auth.controller';
+import { SocialAuthService } from './social-auth.service';
+import { GoogleStrategy } from './strategies/google.strategy';
+import { FacebookStrategy } from './strategies/facebook.strategy';
+import { GoogleOAuthGuard } from './guards/google-oauth.guard';
+import { FacebookOAuthGuard } from './guards/facebook-oauth.guard';
+
 import { PasswordService } from './password.service';
 import { AuthTokenService } from './auth-token.service';
 import { EmailVerificationService } from './email-verification.service';
@@ -26,7 +33,7 @@ import { EmailVerificationService } from './email-verification.service';
     MailModule,
     forwardRef(() => TwoFactorModule),
   ],
-  controllers: [AuthController, MobileAuthController],
+  controllers: [AuthController, MobileAuthController, SocialAuthController],
   providers: [
     AuthService,
     SessionService,
@@ -34,6 +41,11 @@ import { EmailVerificationService } from './email-verification.service';
     JwtAuthGuard,
     JwtMobileStrategy,
     JwtMobileAuthGuard,
+    SocialAuthService,
+    GoogleStrategy,
+    FacebookStrategy,
+    GoogleOAuthGuard,
+    FacebookOAuthGuard,
     RolesGuard,
     PermissionsGuard,
     PasswordService,
@@ -43,6 +55,7 @@ import { EmailVerificationService } from './email-verification.service';
   exports: [
     AuthService,
     SessionService,
+    SocialAuthService,
     JwtStrategy,
     JwtAuthGuard,
     JwtMobileStrategy,

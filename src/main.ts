@@ -137,14 +137,27 @@ async function bootstrap() {
   const redis = app.get<Redis>(REDIS_CLIENT);
   app.useGlobalFilters(new HttpExceptionFilter(logsService, redis));
 
-  // 3. Configuración CORS defensiva y flexible para desarrollo
-  const configuredOrigins = (
+  // 3. Configuración CORS defensiva y flexible para desarrollo y producción
+  const rawOrigins = (
     process.env.FRONTEND_URL ||
-    'http://localhost:5173,http://localhost:5174,http://localhost:3000'
+    'https://sistema.nano-service.com,http://localhost:5173,http://localhost:5174,http://localhost:3000'
   )
     .split(',')
-    .map((origin) => origin.trim())
+    .map((origin) => origin.trim().replace(/\/+$/, ''))
     .filter((origin) => origin.length > 0);
+
+  // Asegurar siempre el dominio de producción del sistema
+  const productionDomains = [
+    'https://sistema.nano-service.com',
+    'http://sistema.nano-service.com',
+  ];
+  for (const domain of productionDomains) {
+    if (!rawOrigins.includes(domain)) {
+      rawOrigins.push(domain);
+    }
+  }
+
+  const configuredOrigins = rawOrigins;
 
   app.enableCors({
     origin: (
@@ -156,22 +169,33 @@ async function bootstrap() {
         return callback(null, true);
       }
 
-      // 2. Orígenes explícitamente configurados
-      if (configuredOrigins.includes(origin)) {
+      const normalizedOrigin = origin.replace(/\/+$/, '');
+
+      // 2. Orígenes explícitamente configurados en FRONTEND_URL
+      if (configuredOrigins.includes(normalizedOrigin)) {
         return callback(null, true);
       }
 
-      // 3. En entorno de desarrollo, permitir puertos dinámicos en localhost o 127.0.0.1
+      // 3. Permitir cualquier subdominio o dominio principal nano-service.com
+      if (
+        /^https?:\/\/([a-zA-Z0-9-]+\.)*nano-service\.com$/.test(
+          normalizedOrigin,
+        )
+      ) {
+        return callback(null, true);
+      }
+
+      // 4. En entorno de desarrollo, permitir puertos dinámicos en localhost o 127.0.0.1
       if (!isProduction) {
         const isLocalhost = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(
-          origin,
+          normalizedOrigin,
         );
         if (isLocalhost) {
           return callback(null, true);
         }
       }
 
-      // 4. Rechazar orígenes no autorizados
+      // 5. Rechazar orígenes no autorizados
       return callback(
         new Error(
           `Acceso denegado por política CORS: origen '${origin}' no autorizado`,

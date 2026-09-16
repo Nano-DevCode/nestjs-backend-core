@@ -154,8 +154,17 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=3000
+      - DB_USER=${DB_USER:-postgres}
+      - DB_PASSWORD=${DB_PASSWORD:-MySecretPassword123}
+      - DB_NAME=${DB_NAME:-sistema_db}
+      - DB_PORT=${DB_PORT:-5432}
+      - DB_POOL_MAX=${DB_POOL_MAX:-25}
+      - DB_POOL_MIN=${DB_POOL_MIN:-5}
+      - DB_POOL_TIMEOUT_MS=${DB_POOL_TIMEOUT_MS:-5000}
       - DATABASE_URL=postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-MySecretPassword123}@postgres-db:5432/${DB_NAME:-sistema_db}?schema=public
       - DATABASE_REPLICA_URL=${DATABASE_REPLICA_URL:-}
+      - APP_NAME=${APP_NAME:-Sistema Core}
+      - APP_URL=${APP_URL:-https://sistema.nano-service.com}
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - REDIS_PASSWORD=${REDIS_PASSWORD:-MyRedisSecretPassword123}
@@ -179,7 +188,13 @@ services:
       - MAIL_SECURE=${MAIL_SECURE:-false}
       - MAIL_USER=${MAIL_USER}
       - MAIL_PASS=${MAIL_PASS}
-      - FRONTEND_URL=${FRONTEND_URL:-http://localhost:5173}
+      - FRONTEND_URL=${FRONTEND_URL:-https://sistema.nano-service.com,http://localhost:5173,http://localhost:3000}
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET:-}
+      - GOOGLE_CALLBACK_URL=${GOOGLE_CALLBACK_URL:-https://sistema.nano-service.com/api/auth/google/callback}
+      - FACEBOOK_APP_ID=${FACEBOOK_APP_ID:-}
+      - FACEBOOK_APP_SECRET=${FACEBOOK_APP_SECRET:-}
+      - FACEBOOK_CALLBACK_URL=${FACEBOOK_CALLBACK_URL:-https://sistema.nano-service.com/api/auth/facebook/callback}
     networks:
       - sistema_network
     logging: *default-logging
@@ -241,6 +256,10 @@ services:
     build:
       context: ../Sistema_Front
       dockerfile: Dockerfile
+      args:
+        - VITE_API_URL=/api
+        - VITE_APP_NAME=Sistema Enterprise
+        - VITE_ENABLE_MOCK_FALLBACK=false
     container_name: sistema_frontend
     restart: unless-stopped
     expose:
@@ -310,6 +329,22 @@ services:
       - ./docker/fail2ban/action.d:/etc/fail2ban/action.d:ro
       - nginx_logs:/var/log/nginx:ro
       - fail2ban_data:/data
+    logging: *default-logging
+
+  # ----------------------------------------------------------------------------
+  # 12. Cloudflare Tunnel (Exposición Segura a Internet sin abrir puertos en router)
+  # ----------------------------------------------------------------------------
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: sistema_cloudflared
+    restart: unless-stopped
+    command: tunnel --no-autoupdate run
+    environment:
+      - TUNNEL_TOKEN=${CLOUDFLARE_TUNNEL_TOKEN:-}
+    networks:
+      - sistema_network
+    depends_on:
+      - nginx
     logging: *default-logging
 
 volumes:

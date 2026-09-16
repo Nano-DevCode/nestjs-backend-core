@@ -1,0 +1,243 @@
+import {
+  Injectable,
+  BadRequestException,
+  UnauthorizedException,
+  Logger,
+} from '@nestjs/common';
+import type { Response } from 'express';
+import type { Prisma } from '../../prisma/generated/prisma/client';
+import { PrismaService } from '../prisma/prisma.service';
+import { AuthTokenService, AUTH_COOKIE_OPTIONS } from './auth-token.service';
+import { TwoFactorService } from '../two-factor/two-factor.service';
+import type { OAuthUserProfile } from './interfaces/oauth-user-profile.interface';
+import {
+  userAuthSelect,
+  type UserAuthContext,
+  type UserAuthPayload,
+  type UserRoleItem,
+  type RolePermissionItem,
+} from './auth.service';
+
+@Injectable()
+export class SocialAuthService {
+  private readonly logger = new Logger(SocialAuthService.name);
+
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly authTokenService: AuthTokenService,
+    private readonly twoFactorService: TwoFactorService,
+  ) {}
+
+  async handleOAuthCallback(
+    profile: OAuthUserProfile,
+    res: Response,
+  ): Promise<void> {
+    const frontendUrl = (
+      process.env.FRONTEND_URL || 'https://sistema.nano-service.com'
+    )
+      .split(',')[0]
+      .trim()
+      .replace(/\/+$/, '');
+
+    try {
+      // 1. Validar presencia del email
+      if (!profile.email || typeof profile.email !== 'string') {
+        if (profile.provider === 'facebook') {
+          throw new BadRequestException(
+            'Tu cuenta de Facebook no tiene un correo electrónico asociado. Por favor, asocia un correo en tu cuenta de Facebook e inténtalo de nuevo.',
+          );
+        }
+        throw new BadRequestException(
+          `El proveedor ${profile.provider} no devolvió una dirección de correo electrónico válida.`,
+        );
+      }
+
+      const email = profile.email.toLowerCase().trim();
+
+      // 2. Buscar si la cuenta federada ya está vinculada en OAuthAccount
+      const existingOAuth = await this.prisma.oAuthAccount.findUnique({
+        where: {
+          provider_providerId: {
+            provider: profile.provider,
+            providerId: profile.providerId,
+          },
+        },
+        include: {
+          user: {
+            select: userAuthSelect,
+          },
+        },
+      });
+
+      let targetUser: UserAuthPayload;
+
+      if (existingOAuth?.user) {
+        targetUser = existingOAuth.user;
+
+        // Actualizar avatar en Profile si no estaba establecido o cambió
+        if (profile.avatarUrl) {
+          await this.prisma.profile.upsert({
+            where: { userId: targetUser.id },
+            create: {
+              userId: targetUser.id,
+              firstName: profile.firstName,
+              lastName: profile.lastName,
+              avatarUrl: profile.avatarUrl,
+            },
+            update: {
+              avatarUrl: profile.avatarUrl,
+            },
+          });
+        }
+      } else {
+        // 3. Buscar usuario por email para Account Linking Seguro
+        const existingUser = await this.prisma.user.findUnique({
+          where: { email },
+          select: userAuthSelect,
+        });
+
+        if (existingUser) {
+          // Si el usuario ya existe con este email, validar que el proveedor certifique el email
+          if (!profile.emailVerified) {
+            throw new BadRequestException(
+              `No es posible vincular la cuenta automáticamente: el correo provisto por ${profile.provider} no está verificado.`,
+            );
+          }
+
+          // Crear vínculo en OAuthAccount
+          await this.prisma.oAuthAccount.create({
+            data: {
+              userId: existingUser.id,
+              provider: profile.provider,
+              providerId: profile.providerId,
+              profileData: (profile.rawProfile ?? {}) as Prisma.InputJsonValue,
+            },
+          });
+
+          // Asegurar o actualizar el Profile del usuario
+          await this.prisma.profile.upsert({
+            where: { userId: existingUser.id },
+            create: {
+              userId: existingUser.id,
+              firstName: profile.firstName,
+              lastName: profile.lastName,
+              avatarUrl: profile.avatarUrl,
+            },
+            update: {
+              avatarUrl: profile.avatarUrl || undefined,
+            },
+          });
+
+          targetUser = existingUser;
+          this.logger.log(
+            `Cuenta ${profile.provider} vinculada exitosamente al usuario existente (${email})`,
+          );
+        } else {
+          // 4. Registro de nuevo usuario (User + Profile + OAuthAccount)
+          const defaultRole = await this.prisma.role.findFirst({
+            where: { name: 'user' },
+          });
+
+          const fullName =
+            `${profile.firstName || ''} ${profile.lastName || ''}`.trim() ||
+            email.split('@')[0];
+
+          targetUser = await this.prisma.user.create({
+            data: {
+              email,
+              name: fullName,
+              password: null, // Usuarios federados sin contraseña local
+              isActive: true,
+              emailVerifiedAt: profile.emailVerified ? new Date() : null,
+              profile: {
+                create: {
+                  firstName: profile.firstName,
+                  lastName: profile.lastName,
+                  avatarUrl: profile.avatarUrl,
+                },
+              },
+              oauthAccounts: {
+                create: {
+                  provider: profile.provider,
+                  providerId: profile.providerId,
+                  profileData: (profile.rawProfile ??
+                    {}) as Prisma.InputJsonValue,
+                },
+              },
+              roles: defaultRole
+                ? {
+                    create: {
+                      roleId: defaultRole.id,
+                    },
+                  }
+                : undefined,
+            },
+            select: userAuthSelect,
+          });
+
+          this.logger.log(
+            `Nuevo usuario registrado vía ${profile.provider} (${email}) con Profile y OAuthAccount asociados.`,
+          );
+        }
+      }
+
+      // Validar estado de la cuenta
+      if (!targetUser.isActive || targetUser.deletedAt !== null) {
+        throw new UnauthorizedException(
+          'Tu cuenta está inactiva o ha sido dada de baja.',
+        );
+      }
+
+      // 5. Manejo del Flujo 2FA Seguro (Sin tokens en URL)
+      if (targetUser.twoFactor?.isEnabled) {
+        const tempToken = await this.twoFactorService.createPendingChallenge(
+          targetUser.id,
+          false,
+        );
+
+        // Emitir cookie temporal HttpOnly con SameSite=Lax
+        res.cookie(
+          'temp_2fa_token',
+          tempToken,
+          AUTH_COOKIE_OPTIONS.getTemp2FaTokenOptions(),
+        );
+
+        // Redirigir a login requiriendo 2FA (cero exposición de tokens en URL)
+        return res.redirect(`${frontendUrl}/login?require2FA=true`);
+      }
+
+      // 6. Usuario sin 2FA: Crear sesión completa con cookies y redirigir
+      const flatRoles: string[] = targetUser.roles.map(
+        (ur: UserRoleItem) => ur.role.name,
+      );
+      const permissionSlugs: string[] = targetUser.roles.flatMap(
+        (ur: UserRoleItem) =>
+          ur.role.permissions.map(
+            (rp: RolePermissionItem) => rp.permission.slug,
+          ),
+      );
+
+      const authContext: UserAuthContext = {
+        id: targetUser.id,
+        email: targetUser.email,
+        roles: flatRoles,
+        permissions: Array.from(new Set(permissionSlugs)),
+        isTwoFactorEnabled: false,
+      };
+
+      await this.authTokenService.createSessionAndCookies(authContext, res);
+
+      // Redirigir al frontend confirmando autenticación exitosa
+      return res.redirect(`${frontendUrl}/login?oauth=success`);
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : 'Error de autenticación social';
+      this.logger.error(
+        `Fallo en autenticación OAuth (${profile.provider}): ${message}`,
+      );
+      return res.redirect(
+        `${frontendUrl}/login?error=${encodeURIComponent(message)}`,
+      );
+    }
+  }
+}

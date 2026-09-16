@@ -157,9 +157,10 @@ export class AuthService {
     });
 
     // Mitigación de Timing Attacks: se compara contra hash real o dummy
-    const isPasswordValid = user
-      ? await this.passwordService.compare(pass, user.password)
-      : await this.passwordService.compareWithDummy(pass);
+    const isPasswordValid =
+      user && user.password
+        ? await this.passwordService.compare(pass, user.password)
+        : await this.passwordService.compareWithDummy(pass);
 
     if (!user || !isPasswordValid) {
       throw new UnauthorizedException('Credenciales inválidas');
@@ -217,6 +218,13 @@ export class AuthService {
           user.id,
           !!trustDevice,
         );
+
+        res.cookie(
+          'temp_2fa_token',
+          tempToken,
+          AUTH_COOKIE_OPTIONS.getTemp2FaTokenOptions(),
+        );
+
         return {
           require2FA: true,
           tempToken,

@@ -81,7 +81,11 @@ export class TwoFactorService {
     const secret: string = tempSecret;
     let isValid = false;
     try {
-      const verification = verifySync({ token: code, secret });
+      const verification = verifySync({
+        token: code,
+        secret,
+        epochTolerance: 30,
+      });
       isValid = verification.valid;
     } catch {
       isValid = false;
@@ -135,6 +139,7 @@ export class TwoFactorService {
       const verification = verifySync({
         token: code,
         secret,
+        epochTolerance: 30,
       });
       isValid = verification.valid;
     } catch {
@@ -184,7 +189,7 @@ export class TwoFactorService {
     code: string,
   ): Promise<PendingChallenge> {
     const challengeKey = `2fa:pending:${tempToken}`;
-    const rawData = await this.redis.getdel(challengeKey);
+    const rawData = await this.redis.get(challengeKey);
 
     if (!rawData) {
       throw new UnauthorizedException('El reto 2FA es inválido o ha expirado.');
@@ -205,11 +210,18 @@ export class TwoFactorService {
     }
 
     const secret: string = this.cryptoService.decrypt(record.secret);
+    if (secret.includes(':')) {
+      throw new UnauthorizedException(
+        'El secreto 2FA almacenado no coincide con la clave criptográfica del servidor actual (TWO_FACTOR_ENCRYPTION_KEY).',
+      );
+    }
+
     let isValid = false;
     try {
       const verification = verifySync({
         token: code,
         secret,
+        epochTolerance: 30,
       });
       isValid = verification.valid;
     } catch {
@@ -219,6 +231,9 @@ export class TwoFactorService {
     if (!isValid) {
       throw new UnauthorizedException('Código 2FA incorrecto.');
     }
+
+    // Reto exitoso: eliminar de Redis para prevenir ataques de repetición
+    await this.redis.del(challengeKey);
 
     return challenge;
   }
@@ -235,10 +250,15 @@ export class TwoFactorService {
     }
 
     const secret: string = this.cryptoService.decrypt(record.secret);
+    if (secret.includes(':')) {
+      return false;
+    }
+
     try {
       const verification = verifySync({
         token: code,
         secret,
+        epochTolerance: 30,
       });
       return verification.valid;
     } catch {

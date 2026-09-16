@@ -27,6 +27,15 @@ export const AUTH_COOKIE_OPTIONS = {
       path: '/api/auth', // Permite enviar la cookie con prefijo global 'api' a /api/auth/refresh y /api/auth/logout
     };
   },
+  getTemp2FaTokenOptions(): CookieOptions {
+    return {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 5 * 60 * 1000, // 5 minutos (coincide con reto en Redis)
+      path: '/',
+    };
+  },
 };
 
 @Injectable()

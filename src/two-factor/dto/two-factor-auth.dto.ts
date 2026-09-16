@@ -1,9 +1,9 @@
-import { IsNotEmpty, IsString, Matches } from 'class-validator';
+import { IsNotEmpty, IsOptional, IsString, Matches } from 'class-validator';
 
 export class TwoFactorAuthDto {
+  @IsOptional()
   @IsString({ message: 'El token temporal debe ser una cadena de texto' })
-  @IsNotEmpty({ message: 'El token temporal es requerido' })
-  tempToken!: string;
+  tempToken?: string;
 
   @IsString({ message: 'El código debe ser una cadena de texto' })
   @IsNotEmpty({ message: 'El código de 6 dígitos es requerido' })
