@@ -5,6 +5,7 @@ import { PrismaClient } from '../generated/prisma/client';
 import { seedPermissions } from './permissions.seed';
 import { seedRoles } from './roles.seed';
 import { seedUsers } from './users.seed';
+import { seedFeatureFlags } from './feature-flags.seed';
 
 const connectionString = process.env['DATABASE_URL'];
 const pool = new Pool({ connectionString });
@@ -23,6 +24,9 @@ async function main() {
 
   // 3. Usuarios vinculados a roles
   await seedUsers(prisma, roles);
+
+  // 4. Feature Flags del sistema
+  await seedFeatureFlags(prisma);
 
   console.log('🎉 Todos los seeds finalizaron con éxito.');
 }

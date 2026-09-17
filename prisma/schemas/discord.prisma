@@ -1,0 +1,15 @@
+model DiscordGuildConfig {
+  id                  String   @id @default(uuid())
+  guildId             String   @unique @map("guild_id")
+  name                String?
+  prefix              String   @default("/")
+  dedicatedChannelId  String?  @map("dedicated_channel_id")
+  defaultVolume       Int      @default(100) @map("default_volume")
+  djRoleId            String?  @map("dj_role_id")
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+
+  @@index([guildId])
+  @@map("discord_guild_configs")
+}
+

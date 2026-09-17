@@ -3,6 +3,21 @@ import { FeatureFlagsService } from './feature-flags.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/auth.decorator';
+import { IsOptional, IsBoolean, IsString } from 'class-validator';
+import type { FeatureFlagRules } from './interfaces/feature-flags.interface';
+
+export class UpdateFeatureFlagDto {
+  @IsOptional()
+  @IsBoolean()
+  isEnabled?: boolean;
+
+  @IsOptional()
+  @IsString()
+  description?: string;
+
+  @IsOptional()
+  rules?: FeatureFlagRules;
+}
 
 @Controller('feature-flags')
 export class FeatureFlagsController {
@@ -20,28 +35,41 @@ export class FeatureFlagsController {
       await this.featureFlagsService.isFeatureEnabled('oauth_google');
     const isFacebook =
       await this.featureFlagsService.isFeatureEnabled('oauth_facebook');
+    const isDiscordBot =
+      await this.featureFlagsService.isFeatureEnabled('DISCORD_BOT_ENABLED');
 
     return {
       oauth_social_login: isMaster,
       oauth_google: isMaster && isGoogle,
       oauth_facebook: isMaster && isFacebook,
+      discord_bot: isDiscordBot,
     };
   }
 
+  /**
+   * Lista todas las banderas disponibles para usuarios autenticados
+   */
   @Get()
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('admin', 'superadmin')
+  @UseGuards(JwtAuthGuard)
   async getAllFlags() {
     return this.featureFlagsService.getAllFlags();
   }
 
+  /**
+   * Modificación de banderas en caliente (exclusivo para administradores)
+   */
   @Patch(':key')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('admin', 'superadmin')
   async toggleFlag(
     @Param('key') key: string,
-    @Body('isEnabled') isEnabled: boolean,
+    @Body() dto: UpdateFeatureFlagDto,
   ) {
-    return this.featureFlagsService.setFeatureFlag(key, isEnabled);
+    return this.featureFlagsService.setFeatureFlag(
+      key,
+      dto.isEnabled,
+      dto.description,
+      dto.rules,
+    );
   }
 }

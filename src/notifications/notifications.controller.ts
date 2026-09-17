@@ -1,9 +1,11 @@
 import {
   Controller,
   Get,
+  Post,
   Patch,
   Param,
   Query,
+  Body,
   UseGuards,
   Sse,
 } from '@nestjs/common';
@@ -17,7 +19,10 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { UserAuthContext } from '../auth/interfaces/auth.interface';
 import { NotificationsService } from './notifications.service';
-import { NotificationQueryDto } from './dto/notification.dto';
+import {
+  NotificationQueryDto,
+  CreateNotificationDto,
+} from './dto/notification.dto';
 import type { Observable } from 'rxjs';
 
 @ApiTags('Notifications')
@@ -78,5 +83,31 @@ export class NotificationsController {
     @CurrentUser() user: UserAuthContext,
   ): Observable<{ data: unknown }> {
     return this.notificationsService.getStreamForUser(user.id);
+  }
+
+  @Post()
+  @ApiOperation({
+    summary:
+      'Crea y despacha una notificación en tiempo real a un usuario específico (por userId o email)',
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'Notificación creada y despachada exitosamente',
+  })
+  async createNotification(@Body() dto: CreateNotificationDto) {
+    return this.notificationsService.createNotification(dto);
+  }
+
+  @Post('send')
+  @ApiOperation({
+    summary:
+      'Envía y despacha una notificación en tiempo real a un usuario específico (por userId o email)',
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'Notificación creada y despachada exitosamente',
+  })
+  async sendNotification(@Body() dto: CreateNotificationDto) {
+    return this.notificationsService.createNotification(dto);
   }
 }

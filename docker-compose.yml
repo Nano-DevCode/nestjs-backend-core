@@ -195,6 +195,15 @@ services:
       - FACEBOOK_APP_ID=${FACEBOOK_APP_ID:-}
       - FACEBOOK_APP_SECRET=${FACEBOOK_APP_SECRET:-}
       - FACEBOOK_CALLBACK_URL=${FACEBOOK_CALLBACK_URL:-https://sistema.nano-service.com/api/auth/facebook/callback}
+      - DISCORD_BOT_ENABLED=${DISCORD_BOT_ENABLED:-false}
+      - DISCORD_BOT_TOKEN=${DISCORD_BOT_TOKEN:-}
+      - DISCORD_CLIENT_ID=${DISCORD_CLIENT_ID:-}
+      - LAVALINK_HOST=${LAVALINK_HOST:-lavalink}
+      - LAVALINK_PORT=${LAVALINK_PORT:-2333}
+      - LAVALINK_PASSWORD=${LAVALINK_PASSWORD:-youshallnotpass}
+      - LAVALINK_SECURE=${LAVALINK_SECURE:-false}
+      - SPOTIFY_CLIENT_ID=${SPOTIFY_CLIENT_ID:-}
+      - SPOTIFY_CLIENT_SECRET=${SPOTIFY_CLIENT_SECRET:-}
     networks:
       - sistema_network
     logging: *default-logging
@@ -260,6 +269,7 @@ services:
         - VITE_API_URL=/api
         - VITE_APP_NAME=Sistema Enterprise
         - VITE_ENABLE_MOCK_FALLBACK=false
+        - VITE_FEATURE_DISCORD_BOT=${VITE_FEATURE_DISCORD_BOT:-true}
     container_name: sistema_frontend
     restart: unless-stopped
     expose:
@@ -347,6 +357,30 @@ services:
       - nginx
     logging: *default-logging
 
+  # ----------------------------------------------------------------------------
+  # 13. Nodo de Audio Lavalink v4 (Perfil Opcional: with-lavalink)
+  # Levantar con: docker compose --profile with-lavalink up -d
+  # ----------------------------------------------------------------------------
+  lavalink:
+    image: ghcr.io/lavalink-devs/lavalink:4-alpine
+    container_name: sistema_lavalink
+    user: root
+    profiles:
+      - with-lavalink
+    restart: unless-stopped
+    environment:
+      - _JAVA_OPTIONS=-Xmx1G
+      - YOUTUBE_REFRESH_TOKEN=${YOUTUBE_REFRESH_TOKEN:-}
+    volumes:
+      - ./docker/lavalink/application.yml:/opt/Lavalink/application.yml:ro
+      - lavalink_plugins:/opt/Lavalink/plugins
+      - lavalink_data:/opt/Lavalink/data
+    ports:
+      - '2333:2333'
+    networks:
+      - sistema_network
+    logging: *default-logging
+
 volumes:
   postgres_data:
   postgres_replica_data:
@@ -354,6 +388,8 @@ volumes:
   seaweedfs_data:
   nginx_logs:
   fail2ban_data:
+  lavalink_plugins:
+  lavalink_data:
 
 networks:
   sistema_network:

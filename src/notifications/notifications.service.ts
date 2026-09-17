@@ -1,4 +1,9 @@
-import { Injectable, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  BadRequestException,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationGateway } from './notifications.gateway';
 import type { Prisma } from '../../prisma/generated/prisma/client';
@@ -25,9 +30,42 @@ export class NotificationsService {
   ) {}
 
   async createNotification(dto: CreateNotificationDto) {
+    let targetUserId = dto.userId;
+
+    if (!targetUserId && dto.email) {
+      const targetUser = await this.prisma.user.findUnique({
+        where: { email: dto.email.toLowerCase().trim() },
+        select: { id: true },
+      });
+      if (!targetUser) {
+        throw new NotFoundException(
+          `Usuario con correo '${dto.email}' no encontrado en el sistema.`,
+        );
+      }
+      targetUserId = targetUser.id;
+    }
+
+    if (!targetUserId) {
+      throw new BadRequestException(
+        'Debes proporcionar al menos el userId o el email del destinatario.',
+      );
+    }
+
+    if (dto.userId) {
+      const exists = await this.prisma.user.findUnique({
+        where: { id: targetUserId },
+        select: { id: true },
+      });
+      if (!exists) {
+        throw new NotFoundException(
+          `Usuario con ID '${targetUserId}' no encontrado en el sistema.`,
+        );
+      }
+    }
+
     const notification = await this.prisma.notification.create({
       data: {
-        userId: dto.userId,
+        userId: targetUserId,
         title: dto.title,
         body: dto.body,
         type: dto.type || 'INFO',
@@ -36,11 +74,11 @@ export class NotificationsService {
     });
 
     // 1. Despacho en tiempo real vía WebSocket
-    this.notificationGateway.sendToUser(dto.userId, notification);
+    this.notificationGateway.sendToUser(targetUserId, notification);
 
     // 2. Despacho en tiempo real vía SSE Stream
     this.sseSubject.next({
-      userId: dto.userId,
+      userId: targetUserId,
       data: notification,
     });
 

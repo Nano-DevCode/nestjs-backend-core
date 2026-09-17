@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, ExecutionContext } from '@nestjs/common';
 import { ThrottlerGuard } from '@nestjs/throttler';
 
 interface TrackableRequest {
@@ -10,6 +10,14 @@ interface TrackableRequest {
 
 @Injectable()
 export class CustomThrottlerGuard extends ThrottlerGuard {
+  override async canActivate(context: ExecutionContext): Promise<boolean> {
+    // Si no es petición HTTP (por ejemplo WebSocket WsContext o RPC), omitir throttling
+    if (context.getType() !== 'http') {
+      return true;
+    }
+    return super.canActivate(context);
+  }
+
   protected override getTracker(req: Record<string, any>): Promise<string> {
     const request = req as TrackableRequest;
 

@@ -12,6 +12,7 @@ describe('NotificationsController', () => {
     markAsRead: jest.Mock;
     markAllAsRead: jest.Mock;
     getStreamForUser: jest.Mock;
+    createNotification: jest.Mock;
   };
 
   const mockUser: UserAuthContext = {
@@ -37,6 +38,13 @@ describe('NotificationsController', () => {
       getStreamForUser: jest
         .fn()
         .mockReturnValue(of({ data: { type: 'CONNECTED' } })),
+      createNotification: jest.fn().mockResolvedValue({
+        id: 'notif-new',
+        userId: 'target-user-1',
+        title: 'Título de prueba',
+        body: 'Cuerpo de prueba',
+        type: 'INFO',
+      }),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -106,4 +114,38 @@ describe('NotificationsController', () => {
       });
     });
   });
+
+  describe('createNotification', () => {
+    it('should call notificationsService.createNotification with dto', async () => {
+      const dto = {
+        userId: 'target-user-1',
+        title: 'Título de prueba',
+        body: 'Cuerpo de prueba',
+      };
+      const res = await controller.createNotification(dto);
+      expect(service.createNotification).toHaveBeenCalledWith(dto);
+      expect(res).toEqual({
+        id: 'notif-new',
+        userId: 'target-user-1',
+        title: 'Título de prueba',
+        body: 'Cuerpo de prueba',
+        type: 'INFO',
+      });
+    });
+  });
+
+  describe('sendNotification', () => {
+    it('should call notificationsService.createNotification with dto', async () => {
+      const dto = {
+        userId: 'target-user-1',
+        title: 'Aviso de Pago Pendiente',
+        body: 'Hola Juan, recuerda tu fecha límite',
+        type: 'WARNING',
+      };
+      const res = await controller.sendNotification(dto);
+      expect(service.createNotification).toHaveBeenCalledWith(dto);
+      expect(res).toBeDefined();
+    });
+  });
 });
+

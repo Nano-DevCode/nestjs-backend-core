@@ -140,6 +140,54 @@ export class NotificationGateway
   }
 
   /**
+   * Emite el evento WebSocket global 'feature-flag:updated' a todos los clientes y namespaces
+   */
+  broadcastFeatureFlag(payload: {
+    key: string;
+    enabled: boolean;
+    roles: string[];
+    rollout: number;
+  }): void {
+    if (!this.server) {
+      this.logger.warn(
+        '[NotificationsGateway] WebSocket server aún no inicializado para emitir feature-flag:updated.',
+      );
+      return;
+    }
+
+    // 1. Emitir en el namespace raíz ('/')
+    this.server.emit('feature-flag:updated', payload);
+
+    // 2. Emitir en el namespace '/realtime/notifications'
+    try {
+      const notifNamespace = this.server.of('/realtime/notifications');
+      notifNamespace.emit('feature-flag:updated', payload);
+    } catch {
+      // Ignorar si el sub-namespace no está inicializado
+    }
+
+    // 3. Emitir en '/realtime' si hay clientes escuchando
+    try {
+      const realtimeNamespace = this.server.of('/realtime');
+      realtimeNamespace.emit('feature-flag:updated', payload);
+    } catch {
+      // Ignorar
+    }
+
+    // 4. Emitir en '/realtime/discord-bot' si hay clientes escuchando
+    try {
+      const discordNamespace = this.server.of('/realtime/discord-bot');
+      discordNamespace.emit('feature-flag:updated', payload);
+    } catch {
+      // Ignorar
+    }
+
+    this.logger.log(
+      `[NotificationsGateway] Evento WebSocket 'feature-flag:updated' emitido para flag '${payload.key}' (enabled=${payload.enabled})`,
+    );
+  }
+
+  /**
    * Retorna la cantidad de sockets conectados actualmente en el gateway y namespaces
    */
   getConnectedSocketsCount(): number {

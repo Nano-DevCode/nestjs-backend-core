@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { FeatureFlagsService } from './feature-flags.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { REDIS_CLIENT } from '../redis/redis.constants';
+import { NotificationGateway } from '../notifications/notifications.gateway';
 
 describe('FeatureFlagsService', () => {
   let service: FeatureFlagsService;
@@ -10,12 +11,16 @@ describe('FeatureFlagsService', () => {
       findUnique: jest.Mock;
       upsert: jest.Mock;
       findMany: jest.Mock;
+      create: jest.Mock;
     };
   };
   let mockRedis: {
     get: jest.Mock;
     set: jest.Mock;
     del: jest.Mock;
+  };
+  let mockNotificationGateway: {
+    broadcastFeatureFlag: jest.Mock;
   };
 
   beforeEach(async () => {
@@ -24,6 +29,7 @@ describe('FeatureFlagsService', () => {
         findUnique: jest.fn(),
         upsert: jest.fn(),
         findMany: jest.fn(),
+        create: jest.fn(),
       },
     };
 
@@ -33,11 +39,16 @@ describe('FeatureFlagsService', () => {
       del: jest.fn(),
     };
 
+    mockNotificationGateway = {
+      broadcastFeatureFlag: jest.fn(),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         FeatureFlagsService,
         { provide: PrismaService, useValue: mockPrisma },
         { provide: REDIS_CLIENT, useValue: mockRedis },
+        { provide: NotificationGateway, useValue: mockNotificationGateway },
       ],
     }).compile();
 
@@ -117,7 +128,8 @@ describe('FeatureFlagsService', () => {
     expect(denied).toBe(false);
   });
 
-  it('debe habilitar un flag en Prisma y sincronizar Redis', async () => {
+  it('debe habilitar un flag en Prisma, invalidar Redis y emitir WebSocket', async () => {
+    mockPrisma.featureFlag.findUnique.mockResolvedValueOnce(null);
     mockPrisma.featureFlag.upsert.mockResolvedValueOnce({
       key: 'DARK_MODE',
       isEnabled: true,
@@ -129,17 +141,25 @@ describe('FeatureFlagsService', () => {
     expect(mockPrisma.featureFlag.upsert).toHaveBeenCalledWith({
       where: { key: 'DARK_MODE' },
       update: { isEnabled: true },
-      create: { key: 'DARK_MODE', isEnabled: true },
+      create: { key: 'DARK_MODE', isEnabled: true, description: undefined },
     });
+    expect(mockRedis.del).toHaveBeenCalledWith('feature_flag:DARK_MODE');
     expect(mockRedis.set).toHaveBeenCalledWith(
       'feature_flag:DARK_MODE',
       JSON.stringify({ isEnabled: true, rules: null }),
       'EX',
       300,
     );
+    expect(mockNotificationGateway.broadcastFeatureFlag).toHaveBeenCalledWith({
+      key: 'DARK_MODE',
+      enabled: true,
+      roles: [],
+      rollout: 100,
+    });
   });
 
-  it('debe deshabilitar un flag en Prisma y sincronizar Redis', async () => {
+  it('debe deshabilitar un flag en Prisma, invalidar Redis y emitir WebSocket', async () => {
+    mockPrisma.featureFlag.findUnique.mockResolvedValueOnce(null);
     mockPrisma.featureFlag.upsert.mockResolvedValueOnce({
       key: 'DARK_MODE',
       isEnabled: false,
@@ -151,13 +171,20 @@ describe('FeatureFlagsService', () => {
     expect(mockPrisma.featureFlag.upsert).toHaveBeenCalledWith({
       where: { key: 'DARK_MODE' },
       update: { isEnabled: false },
-      create: { key: 'DARK_MODE', isEnabled: false },
+      create: { key: 'DARK_MODE', isEnabled: false, description: undefined },
     });
+    expect(mockRedis.del).toHaveBeenCalledWith('feature_flag:DARK_MODE');
     expect(mockRedis.set).toHaveBeenCalledWith(
       'feature_flag:DARK_MODE',
       JSON.stringify({ isEnabled: false, rules: null }),
       'EX',
       300,
     );
+    expect(mockNotificationGateway.broadcastFeatureFlag).toHaveBeenCalledWith({
+      key: 'DARK_MODE',
+      enabled: false,
+      roles: [],
+      rollout: 0,
+    });
   });
 });

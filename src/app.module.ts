@@ -22,6 +22,7 @@ import { NotificationsModule } from './notifications/notifications.module';
 import { PdfModule } from './pdf/pdf.module';
 import { ApiKeysModule } from './api-keys/api-keys.module';
 import { LogsModule } from './logs/logs.module';
+import { DiscordBotModule } from './discord-bot/discord-bot.module';
 
 @Module({
   imports: [
@@ -65,6 +66,7 @@ import { LogsModule } from './logs/logs.module';
     PdfModule,
     ApiKeysModule,
     LogsModule,
+    DiscordBotModule.register(),
   ],
   controllers: [AppController],
   providers: [
