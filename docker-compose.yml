@@ -34,7 +34,11 @@ services:
       - postgres_data:/var/lib/postgresql/data
       - ./docker/postgres/01-init-replication.sh:/docker-entrypoint-initdb.d/01-init-replication.sh:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-sistema_db}"]
+      test:
+        [
+          'CMD-SHELL',
+          'pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-sistema_db}',
+        ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -54,7 +58,7 @@ services:
     depends_on:
       postgres-db:
         condition: service_healthy
-    entrypoint: ["/bin/sh", "/init-replica.sh"]
+    entrypoint: ['/bin/sh', '/init-replica.sh']
     environment:
       POSTGRES_USER: ${DB_USER:-postgres}
       POSTGRES_PASSWORD: ${DB_PASSWORD:-MySecretPassword123}
@@ -69,7 +73,11 @@ services:
       - postgres_replica_data:/var/lib/postgresql/data
       - ./docker/postgres/init-replica.sh:/init-replica.sh:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-sistema_db}"]
+      test:
+        [
+          'CMD-SHELL',
+          'pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-sistema_db}',
+        ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -90,7 +98,14 @@ services:
     volumes:
       - redis_data:/data
     healthcheck:
-      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-MyRedisSecretPassword123}", "ping"]
+      test:
+        [
+          'CMD',
+          'redis-cli',
+          '-a',
+          '${REDIS_PASSWORD:-MyRedisSecretPassword123}',
+          'ping',
+        ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -204,6 +219,8 @@ services:
       - LAVALINK_SECURE=${LAVALINK_SECURE:-false}
       - SPOTIFY_CLIENT_ID=${SPOTIFY_CLIENT_ID:-}
       - SPOTIFY_CLIENT_SECRET=${SPOTIFY_CLIENT_SECRET:-}
+    volumes:
+      - ./scripts:/app/scripts:ro
     networks:
       - sistema_network
     logging: *default-logging
@@ -325,7 +342,7 @@ services:
     image: crazymax/fail2ban:latest
     container_name: sistema_fail2ban
     restart: unless-stopped
-    network_mode: "host"
+    network_mode: 'host'
     cap_add:
       - NET_ADMIN
       - NET_RAW

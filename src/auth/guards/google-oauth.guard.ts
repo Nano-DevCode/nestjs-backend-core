@@ -19,6 +19,28 @@ export class GoogleOAuthGuard extends AuthGuard('google') {
     });
   }
 
+  override getAuthenticateOptions(context: ExecutionContext) {
+    const req = context.switchToHttp().getRequest();
+    const redirectUri = req.query?.['redirect_uri'] as string | undefined;
+    const platform = req.query?.['platform'] as string | undefined;
+
+    const baseOptions: Record<string, unknown> = {
+      prompt: 'select_account',
+    };
+
+    if (redirectUri || platform) {
+      const stateData = {
+        redirectUri,
+        platform: platform || (redirectUri ? 'mobile' : undefined),
+      };
+      baseOptions['state'] = Buffer.from(JSON.stringify(stateData)).toString(
+        'base64url',
+      );
+    }
+
+    return baseOptions;
+  }
+
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const isMasterEnabled =
       await this.featureFlagsService.isFeatureEnabled('oauth_social_login');

@@ -24,6 +24,7 @@
     "backup:all": "pnpm backup:db && pnpm backup:storage",
     "restore:db": "powershell -ExecutionPolicy Bypass -File ./scripts/restore-db.ps1",
     "rotate:2fa": "tsx scripts/rotate-2fa-keys.ts",
+    "reset:2fa": "tsx scripts/reset-2fa.ts",
     "benchmark": "node scripts/benchmark.js"
   },
   "prisma": {
@@ -106,6 +107,7 @@
     "autocannon": "^8.0.0",
     "eslint": "^9.18.0",
     "eslint-config-prettier": "^10.0.1",
+    "eslint-plugin-jest": "^29.16.6",
     "eslint-plugin-prettier": "^5.2.2",
     "globals": "^16.0.0",
     "jest": "^30.0.0",

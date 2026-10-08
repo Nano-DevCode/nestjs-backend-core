@@ -131,7 +131,12 @@ export class AuthTokenService {
     user: UserAuthContext,
     existingTokenId?: string,
   ): Promise<{
-    user: { id: string; email: string; roles: string[] };
+    user: {
+      id: string;
+      email: string;
+      roles: string[];
+      isTwoFactorEnabled: boolean;
+    };
     accessToken: string;
     refreshToken: string;
   }> {
@@ -147,6 +152,7 @@ export class AuthTokenService {
         id: user.id,
         email: user.email,
         roles: user.roles,
+        isTwoFactorEnabled: user.isTwoFactorEnabled,
       },
       accessToken,
       refreshToken,

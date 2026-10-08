@@ -1,6 +1,7 @@
-import * as crypto from 'crypto';
-import { Pool } from 'pg';
 import { PrismaPg } from '@prisma/adapter-pg';
+import * as crypto from 'crypto';
+import 'dotenv/config';
+import { Pool } from 'pg';
 import { PrismaClient, type Prisma } from '../prisma/generated/prisma/client';
 
 type UserTwoFactorWithEmail = Prisma.UserTwoFactorGetPayload<{

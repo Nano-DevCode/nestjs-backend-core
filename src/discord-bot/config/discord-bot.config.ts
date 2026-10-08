@@ -30,7 +30,10 @@ export function loadDiscordBotConfig(): DiscordBotConfig {
     clientId: process.env.DISCORD_CLIENT_ID || undefined,
     lavalink: {
       name: 'lavalink-node-1',
-      host: process.env.LAVALINK_HOST || 'localhost',
+      host:
+        process.env.LAVALINK_HOST === 'lavalink' && !process.env.DOCKER_CONTAINER
+          ? 'localhost'
+          : process.env.LAVALINK_HOST || 'localhost',
       port: Number(process.env.LAVALINK_PORT) || 2333,
       password: process.env.LAVALINK_PASSWORD || 'youshallnotpass',
       secure: process.env.LAVALINK_SECURE === 'true',

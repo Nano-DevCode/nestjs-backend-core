@@ -257,4 +257,20 @@ describe('MobileAuthController', () => {
       expect(result).toEqual(mockMobileTokensResponse);
     });
   });
+
+  describe('GET /auth/mobile/me', () => {
+    it('should return authenticated user profile from context', () => {
+      const result = controller.getProfile(mockUserContext);
+
+      expect(result).toEqual({
+        user: {
+          id: mockUserContext.id,
+          email: mockUserContext.email,
+          roles: mockUserContext.roles,
+          permissions: mockUserContext.permissions,
+          isTwoFactorEnabled: mockUserContext.isTwoFactorEnabled,
+        },
+      });
+    });
+  });
 });

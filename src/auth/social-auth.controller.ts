@@ -25,7 +25,7 @@ export class SocialAuthController {
     @Req() req: RequestWithOAuthUser,
     @Res() res: Response,
   ) {
-    return this.socialAuthService.handleOAuthCallback(req.user, res);
+    return this.socialAuthService.handleOAuthCallback(req.user, res, req);
   }
 
   @Get('facebook')
@@ -40,6 +40,6 @@ export class SocialAuthController {
     @Req() req: RequestWithOAuthUser,
     @Res() res: Response,
   ) {
-    return this.socialAuthService.handleOAuthCallback(req.user, res);
+    return this.socialAuthService.handleOAuthCallback(req.user, res, req);
   }
 }

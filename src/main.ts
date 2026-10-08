@@ -137,42 +137,42 @@ async function bootstrap() {
   const redis = app.get<Redis>(REDIS_CLIENT);
   app.useGlobalFilters(new HttpExceptionFilter(logsService, redis));
 
-  // 3. Configuración CORS defensiva y flexible para desarrollo y producción
-  const rawOrigins = (
-    process.env.FRONTEND_URL ||
-    'https://sistema.nano-service.com,http://localhost:5173,http://localhost:5174,http://localhost:3000'
-  )
-    .split(',')
-    .map((origin) => origin.trim().replace(/\/+$/, ''))
-    .filter((origin) => origin.length > 0);
-
-  // Asegurar siempre el dominio de producción del sistema
-  const productionDomains = [
+  // 3. Configuración CORS defensiva y flexible para desarrollo, móvil y producción
+  const allowedOrigins = [
+    'http://localhost:8081',
+    'http://localhost:3000',
+    'http://localhost:5173',
+    'http://localhost:5174',
     'https://sistema.nano-service.com',
     'http://sistema.nano-service.com',
-  ];
-  for (const domain of productionDomains) {
-    if (!rawOrigins.includes(domain)) {
-      rawOrigins.push(domain);
-    }
-  }
-
-  const configuredOrigins = rawOrigins;
+    ...(process.env.ALLOWED_ORIGINS
+      ? process.env.ALLOWED_ORIGINS.split(',').map((o) =>
+          o.trim().replace(/\/+$/, ''),
+        )
+      : []),
+    ...(process.env.FRONTEND_URL
+      ? process.env.FRONTEND_URL.split(',').map((o) =>
+          o.trim().replace(/\/+$/, ''),
+        )
+      : []),
+  ].filter(
+    (origin, index, self) => Boolean(origin) && self.indexOf(origin) === index,
+  );
 
   app.enableCors({
     origin: (
       origin: string | undefined,
       callback: (err: Error | null, allow?: boolean) => void,
     ) => {
-      // 1. Peticiones sin cabecera Origin (móviles nativos, curl, Postman, server-to-server)
-      if (!origin) {
+      // 1. Permitir clientes nativos en Android/iOS o Postman (sin header Origin o 'null')
+      if (!origin || origin === 'null') {
         return callback(null, true);
       }
 
-      const normalizedOrigin = origin.replace(/\/+$/, '');
+      const normalizedOrigin = origin.trim().replace(/\/+$/, '');
 
-      // 2. Orígenes explícitamente configurados en FRONTEND_URL
-      if (configuredOrigins.includes(normalizedOrigin)) {
+      // 2. Orígenes explícitamente permitidos (Expo 8081, React Vite 5173, etc.)
+      if (allowedOrigins.includes(normalizedOrigin)) {
         return callback(null, true);
       }
 
@@ -185,37 +185,49 @@ async function bootstrap() {
         return callback(null, true);
       }
 
-      // 4. En entorno de desarrollo, permitir puertos dinámicos en localhost o 127.0.0.1
-      if (!isProduction) {
-        const isLocalhost = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(
+      // 4. Permitir localhost en cualquier puerto y redes privadas locales (LAN / Wi-Fi / Emuladores)
+      const isLocalOrPrivateNetwork =
+        /^https?:\/\/(localhost|127\.0\.0\.1|10\.\d{1,3}\.\d{1,3}\.\d{1,3}|192\.168\.\d{1,3}\.\d{1,3}|172\.(1[6-9]|2\d|3[0-1])\.\d{1,3}\.\d{1,3})(:\d+)?$/.test(
           normalizedOrigin,
         );
-        if (isLocalhost) {
-          return callback(null, true);
-        }
+      if (isLocalOrPrivateNetwork) {
+        return callback(null, true);
       }
 
       // 5. Rechazar orígenes no autorizados
       return callback(
-        new Error(
-          `Acceso denegado por política CORS: origen '${origin}' no autorizado`,
-        ),
+        new Error(`CORS bloqueado para el origen: ${origin}`),
+        false,
       );
     },
-    credentials: true,
     methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
     allowedHeaders: [
       'Content-Type',
-      'Accept',
       'Authorization',
-      'X-Requested-With',
+      'X-Idempotency-Key',
+      'x-idempotency-key',
       'Idempotency-Key',
-      'X-API-Key',
-      'x-platform',
+      'X-App-Version',
       'x-app-version',
+      'x-2fa-code',
+      'X-2FA-Code',
+      'X-Platform',
+      'x-platform',
+      'X-Device-Id',
+      'x-device-id',
+      'Accept',
+      'X-Requested-With',
+      'X-API-Key',
     ],
-    exposedHeaders: ['Content-Range', 'X-Content-Range'],
-    maxAge: 86400,
+    exposedHeaders: [
+      'X-Idempotency-Key',
+      'x-idempotency-key',
+      'Content-Range',
+      'X-Content-Range',
+    ],
+    credentials: true,
+    preflightContinue: false,
+    optionsSuccessStatus: 204,
   });
 
   // 3. Especificación OpenAPI generada para la interfaz de Scalar
@@ -261,14 +273,14 @@ async function bootstrap() {
   );
 
   const port = process.env.PORT ?? 3000;
-  await app.listen(port);
+  await app.listen(port, '0.0.0.0');
 
   // Optimización de Keep-Alive para alta concurrencia y proxies inversos (NGINX, AWS ALB, Cloudflare)
   const server = app.getHttpServer() as unknown as HttpServerWithTimeout;
   server.keepAliveTimeout = 65000; // 65 segundos (mayor que los 60s típicos de los proxies)
   server.headersTimeout = 66000; // 66 segundos (debe ser estrictamente superior a keepAliveTimeout)
 
-  console.log(`Application is running on port: ${port}`);
+  console.log(`Application is running on: http://0.0.0.0:${port}`);
   console.log(
     `Scalar API documentation (Protegida) at: http://localhost:${port}/api/docs`,
   );

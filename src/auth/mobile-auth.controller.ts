@@ -1,6 +1,7 @@
 import {
   Controller,
   Post,
+  Get,
   Body,
   Req,
   UseGuards,
@@ -213,5 +214,27 @@ export class MobileAuthController {
       challenge.userId,
     );
     return this.authTokenService.createMobileTokens(user);
+  }
+
+  @Get('me')
+  @UseGuards(JwtMobileAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Obtener perfil del usuario autenticado en la app móvil',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Perfil del usuario móvil obtenido exitosamente',
+  })
+  getProfile(@CurrentUser() user: UserAuthContext) {
+    return {
+      user: {
+        id: user.id,
+        email: user.email,
+        roles: user.roles,
+        permissions: user.permissions,
+        isTwoFactorEnabled: user.isTwoFactorEnabled,
+      },
+    };
   }
 }

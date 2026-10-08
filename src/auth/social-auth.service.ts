@@ -4,7 +4,7 @@ import {
   UnauthorizedException,
   Logger,
 } from '@nestjs/common';
-import type { Response } from 'express';
+import type { Request, Response } from 'express';
 import type { Prisma } from '../../prisma/generated/prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuthTokenService, AUTH_COOKIE_OPTIONS } from './auth-token.service';
@@ -31,6 +31,7 @@ export class SocialAuthService {
   async handleOAuthCallback(
     profile: OAuthUserProfile,
     res: Response,
+    req?: Request,
   ): Promise<void> {
     const frontendUrl = (
       process.env.FRONTEND_URL || 'https://sistema.nano-service.com'
@@ -38,6 +39,20 @@ export class SocialAuthService {
       .split(',')[0]
       .trim()
       .replace(/\/+$/, '');
+
+    let mobileRedirectUri: string | null = null;
+    if (req?.query?.['state'] && typeof req.query['state'] === 'string') {
+      try {
+        const decoded = JSON.parse(
+          Buffer.from(req.query['state'], 'base64url').toString('utf8'),
+        );
+        if (decoded?.redirectUri && typeof decoded.redirectUri === 'string') {
+          mobileRedirectUri = decoded.redirectUri;
+        }
+      } catch {
+        // Ignorar si el state no es un JSON base64url
+      }
+    }
 
     try {
       // 1. Validar presencia del email
@@ -188,14 +203,21 @@ export class SocialAuthService {
         );
       }
 
-      // 5. Manejo del Flujo 2FA Seguro (Sin tokens en URL)
+      // 5. Manejo del Flujo 2FA Seguro
       if (targetUser.twoFactor?.isEnabled) {
         const tempToken = await this.twoFactorService.createPendingChallenge(
           targetUser.id,
           false,
         );
 
-        // Emitir cookie temporal HttpOnly con SameSite=Lax
+        if (mobileRedirectUri) {
+          const sep = mobileRedirectUri.includes('?') ? '&' : '?';
+          return res.redirect(
+            `${mobileRedirectUri}${sep}require2FA=true&tempToken=${encodeURIComponent(tempToken)}`,
+          );
+        }
+
+        // Emitir cookie temporal HttpOnly con SameSite=Lax (Web)
         res.cookie(
           'temp_2fa_token',
           tempToken,
@@ -206,7 +228,7 @@ export class SocialAuthService {
         return res.redirect(`${frontendUrl}/login?require2FA=true`);
       }
 
-      // 6. Usuario sin 2FA: Crear sesión completa con cookies y redirigir
+      // 6. Usuario sin 2FA: Crear sesión
       const flatRoles: string[] = targetUser.roles.map(
         (ur: UserRoleItem) => ur.role.name,
       );
@@ -225,6 +247,18 @@ export class SocialAuthService {
         isTwoFactorEnabled: false,
       };
 
+      if (mobileRedirectUri) {
+        const mobileTokens =
+          await this.authTokenService.createMobileTokens(authContext);
+        const sep = mobileRedirectUri.includes('?') ? '&' : '?';
+        const userParam = encodeURIComponent(
+          JSON.stringify(mobileTokens.user),
+        );
+        return res.redirect(
+          `${mobileRedirectUri}${sep}accessToken=${encodeURIComponent(mobileTokens.accessToken)}&refreshToken=${encodeURIComponent(mobileTokens.refreshToken)}&user=${userParam}`,
+        );
+      }
+
       await this.authTokenService.createSessionAndCookies(authContext, res);
 
       // Redirigir al frontend confirmando autenticación exitosa
@@ -235,6 +269,12 @@ export class SocialAuthService {
       this.logger.error(
         `Fallo en autenticación OAuth (${profile.provider}): ${message}`,
       );
+      if (mobileRedirectUri) {
+        const sep = mobileRedirectUri.includes('?') ? '&' : '?';
+        return res.redirect(
+          `${mobileRedirectUri}${sep}error=${encodeURIComponent(message)}`,
+        );
+      }
       return res.redirect(
         `${frontendUrl}/login?error=${encodeURIComponent(message)}`,
       );
