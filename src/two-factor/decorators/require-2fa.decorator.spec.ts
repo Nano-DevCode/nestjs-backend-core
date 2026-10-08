@@ -18,3 +18,4 @@ describe('Require2FA Decorator', () => {
     expect(metadata).toBe(true);
   });
 });
+

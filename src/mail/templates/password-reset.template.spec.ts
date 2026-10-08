@@ -23,3 +23,4 @@ describe('getPasswordResetTemplate', () => {
     expect(result.text).toContain('Hola.');
   });
 });
+

@@ -60,3 +60,4 @@ describe('loadDiscordBotConfig', () => {
     expect(config.lavalink.host).toBe('localhost');
   });
 });
+

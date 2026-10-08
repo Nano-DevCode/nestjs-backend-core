@@ -18,3 +18,4 @@ describe('RequireFeature Decorator', () => {
     expect(metadata).toBe('BETA_ANALYTICS');
   });
 });
+

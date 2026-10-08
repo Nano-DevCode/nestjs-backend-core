@@ -23,3 +23,4 @@ describe('getVerificationEmailTemplate', () => {
     expect(result.text).toContain('Hola.');
   });
 });
+
