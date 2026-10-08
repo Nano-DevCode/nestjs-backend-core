@@ -25,7 +25,8 @@
     "restore:db": "powershell -ExecutionPolicy Bypass -File ./scripts/restore-db.ps1",
     "rotate:2fa": "tsx scripts/rotate-2fa-keys.ts",
     "reset:2fa": "tsx scripts/reset-2fa.ts",
-    "benchmark": "node scripts/benchmark.js"
+    "benchmark": "node scripts/benchmark.js",
+    "test:stress": "tsx scripts/stress-test-suite.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seeds/main.seed.ts"

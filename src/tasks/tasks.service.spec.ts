@@ -64,4 +64,17 @@ describe('TasksService', () => {
       },
     });
   });
+
+  it('monitorSystemHealthAndAlert should return health status', () => {
+    const res = service.monitorSystemHealthAndAlert();
+    expect(res).toBeDefined();
+    expect(typeof res.isHealthy).toBe('boolean');
+    expect(Array.isArray(res.alerts)).toBe(true);
+  });
+
+  it('verifyBackupIntegrity should return verified status', async () => {
+    const res = await service.verifyBackupIntegrity();
+    expect(res).toEqual({ status: 'verified' });
+  });
 });
+

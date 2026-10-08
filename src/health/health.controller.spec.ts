@@ -197,4 +197,28 @@ describe('HealthController', () => {
       );
     });
   });
+
+  describe('getPrometheusMetrics', () => {
+    it('should export formatted OpenMetrics plain text with uptime, memory, redis and pool metrics', async () => {
+      const metrics = await controller.getPrometheusMetrics();
+
+      expect(typeof metrics).toBe('string');
+      expect(metrics).toContain('process_uptime_seconds');
+      expect(metrics).toContain('process_heap_bytes');
+      expect(metrics).toContain('process_rss_bytes');
+      expect(metrics).toContain('redis_up 1');
+      expect(metrics).toContain('db_pool_connections{state="total"} 10');
+      expect(metrics).toContain('db_pool_connections{state="idle"} 8');
+      expect(metrics).toContain('db_pool_connections{state="active"} 2');
+    });
+
+    it('should set redis_up 0 if redis ping throws', async () => {
+      redisMock.ping.mockRejectedValueOnce(new Error('Connection refused'));
+
+      const metrics = await controller.getPrometheusMetrics();
+
+      expect(metrics).toContain('redis_up 0');
+    });
+  });
 });
+

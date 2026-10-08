@@ -1,6 +1,7 @@
 import {
   Controller,
   Get,
+  Header,
   Inject,
   ServiceUnavailableException,
 } from '@nestjs/common';
@@ -161,4 +162,54 @@ export class HealthController {
       throw error;
     }
   }
+
+  @Get('metrics')
+  @Public()
+  @SkipThrottle()
+  @Header('Content-Type', 'text/plain; version=0.0.4; charset=utf-8')
+  @ApiOperation({
+    summary:
+      'Exporta métricas operativas del sistema en formato estándar Prometheus / OpenMetrics',
+  })
+  async getPrometheusMetrics(): Promise<string> {
+    const memUsage = process.memoryUsage();
+    const uptime = Math.floor(process.uptime());
+
+    let redisUp = 0;
+    try {
+      const pong: unknown = await this.redis.ping();
+      if (pong === 'PONG') redisUp = 1;
+    } catch {
+      redisUp = 0;
+    }
+
+    const lines = [
+      '# HELP process_uptime_seconds Tiempo transcurrido del proceso en segundos',
+      '# TYPE process_uptime_seconds gauge',
+      `process_uptime_seconds ${uptime}`,
+      '# HELP process_heap_bytes Memoria Heap de Node.js en bytes',
+      '# TYPE process_heap_bytes gauge',
+      `process_heap_bytes ${memUsage.heapUsed}`,
+      '# HELP process_rss_bytes Memoria Residente RSS en bytes',
+      '# TYPE process_rss_bytes gauge',
+      `process_rss_bytes ${memUsage.rss}`,
+      '# HELP redis_up Estado de conectividad con Redis (1=up, 0=down)',
+      '# TYPE redis_up gauge',
+      `redis_up ${redisUp}`,
+    ];
+
+    if (this.prisma.pool) {
+      lines.push(
+        '# HELP db_pool_connections Conexiones a PostgreSQL primaria',
+        '# TYPE db_pool_connections gauge',
+        `db_pool_connections{state="total"} ${this.prisma.pool.totalCount}`,
+        `db_pool_connections{state="idle"} ${this.prisma.pool.idleCount}`,
+        `db_pool_connections{state="active"} ${this.prisma.pool.totalCount - this.prisma.pool.idleCount}`,
+        `db_pool_connections{state="waiting"} ${this.prisma.pool.waitingCount}`,
+      );
+    }
+
+    return lines.join('\n') + '\n';
+  }
 }
+
