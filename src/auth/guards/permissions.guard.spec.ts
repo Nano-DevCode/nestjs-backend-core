@@ -73,3 +73,4 @@ describe('PermissionsGuard', () => {
     expect(() => guard.canActivate(context)).toThrow(ForbiddenException);
   });
 });
+

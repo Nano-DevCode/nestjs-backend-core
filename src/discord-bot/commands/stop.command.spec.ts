@@ -29,3 +29,4 @@ describe('StopCommand', () => {
     expect(interaction.reply).toHaveBeenCalledWith('⏹️ Reproducción detenida y cola vaciada.');
   });
 });
+

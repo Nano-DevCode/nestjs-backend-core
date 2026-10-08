@@ -52,3 +52,4 @@ describe('VirusScanService', () => {
     await expect(service.scanBuffer(cleanBuffer)).resolves.not.toThrow();
   });
 });
+

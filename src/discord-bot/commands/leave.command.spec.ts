@@ -29,3 +29,4 @@ describe('LeaveCommand', () => {
     expect(interaction.reply).toHaveBeenCalledWith('👋 Bot desconectado del canal de voz.');
   });
 });
+
