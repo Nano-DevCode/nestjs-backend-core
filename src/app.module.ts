@@ -23,6 +23,9 @@ import { PdfModule } from './pdf/pdf.module';
 import { ApiKeysModule } from './api-keys/api-keys.module';
 import { LogsModule } from './logs/logs.module';
 import { DiscordBotModule } from './discord-bot/discord-bot.module';
+import { AlertsModule } from './alerts/alerts.module';
+import { WebhooksModule } from './webhooks/webhooks.module';
+import { ExportsModule } from './exports/exports.module';
 
 @Module({
   imports: [
@@ -67,6 +70,9 @@ import { DiscordBotModule } from './discord-bot/discord-bot.module';
     ApiKeysModule,
     LogsModule,
     DiscordBotModule.register(),
+    AlertsModule,
+    WebhooksModule,
+    ExportsModule,
   ],
   controllers: [AppController],
   providers: [

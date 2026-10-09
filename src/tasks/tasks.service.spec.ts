@@ -11,6 +11,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { TasksService } from './tasks.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { FilesService } from '../files/files.service';
+import { AlertsService } from '../alerts/alerts.service';
 
 describe('TasksService', () => {
   let service: TasksService;
@@ -18,8 +19,14 @@ describe('TasksService', () => {
     auditLog: {
       deleteMany: jest.Mock;
     };
+    pool?: {
+      waitingCount: number;
+    };
   };
   let filesService: Partial<FilesService>;
+  let alertsService: {
+    sendAlert: jest.Mock;
+  };
 
   beforeEach(async () => {
     prisma = {
@@ -29,12 +36,16 @@ describe('TasksService', () => {
     };
 
     filesService = {};
+    alertsService = {
+      sendAlert: jest.fn().mockResolvedValue(true),
+    };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         TasksService,
         { provide: PrismaService, useValue: prisma },
         { provide: FilesService, useValue: filesService },
+        { provide: AlertsService, useValue: alertsService },
       ],
     }).compile();
 
@@ -72,9 +83,22 @@ describe('TasksService', () => {
     expect(Array.isArray(res.alerts)).toBe(true);
   });
 
+  it('monitorSystemHealthAndAlert should alert when pool is saturated', () => {
+    prisma.pool = { waitingCount: 15 };
+
+    const res = service.monitorSystemHealthAndAlert();
+    expect(res.isHealthy).toBe(false);
+    expect(res.alerts.length).toBeGreaterThan(0);
+    expect(alertsService.sendAlert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        title: expect.stringContaining('Connection Pool'),
+        severity: 'critical',
+      }),
+    );
+  });
+
   it('verifyBackupIntegrity should return verified status', async () => {
     const res = await service.verifyBackupIntegrity();
     expect(res).toEqual({ status: 'verified' });
   });
 });
-

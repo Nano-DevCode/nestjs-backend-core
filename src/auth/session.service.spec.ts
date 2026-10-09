@@ -20,6 +20,7 @@ describe('SessionService', () => {
   };
   let pipelineMock: {
     set: jest.Mock;
+    get: jest.Mock;
     zremrangebyscore: jest.Mock;
     zadd: jest.Mock;
     expire: jest.Mock;
@@ -31,6 +32,7 @@ describe('SessionService', () => {
   beforeEach(async () => {
     pipelineMock = {
       set: jest.fn().mockReturnThis(),
+      get: jest.fn().mockReturnThis(),
       zremrangebyscore: jest.fn().mockReturnThis(),
       zadd: jest.fn().mockReturnThis(),
       expire: jest.fn().mockReturnThis(),
@@ -70,7 +72,7 @@ describe('SessionService', () => {
       expect(redisMock.pipeline).toHaveBeenCalled();
       expect(pipelineMock.set).toHaveBeenCalledWith(
         'session:user-1:token-123',
-        'active',
+        expect.stringContaining('"sessionId":"token-123"'),
         'EX',
         3600,
       );
@@ -224,5 +226,36 @@ describe('SessionService', () => {
       expect(redisMock.del).toHaveBeenCalledWith('auth:context:u-1');
     });
   });
+
+  describe('getUserSessions y revokeOtherUserSessions', () => {
+    it('debe recuperar las sesiones activas parseadas con metadatos de dispositivo', async () => {
+      redisMock.zrange.mockResolvedValue(['t-1', 't-2']);
+      pipelineMock.exec.mockResolvedValue([
+        [null, JSON.stringify({ ip: '1.2.3.4', userAgent: 'Chrome', deviceType: 'desktop', browser: 'Google Chrome', os: 'Windows 10/11' })],
+        [null, 'active'], // legacy active
+      ]);
+
+      const sessions = await service.getUserSessions('u-1', 't-1');
+
+      expect(sessions.length).toBe(2);
+      expect(sessions[0].sessionId).toBe('t-1');
+      expect(sessions[0].current).toBe(true);
+      expect(sessions[0].deviceType).toBe('desktop');
+      expect(sessions[1].sessionId).toBe('t-2');
+      expect(sessions[1].current).toBe(false);
+    });
+
+    it('debe revocar otras sesiones excepto la actual', async () => {
+      redisMock.zrange.mockResolvedValue(['t-current', 't-other-1', 't-other-2']);
+
+      const count = await service.revokeOtherUserSessions('u-1', 't-current');
+
+      expect(count).toBe(2);
+      expect(pipelineMock.del).toHaveBeenCalledWith('session:u-1:t-other-1');
+      expect(pipelineMock.del).toHaveBeenCalledWith('session:u-1:t-other-2');
+      expect(pipelineMock.exec).toHaveBeenCalled();
+    });
+  });
 });
+
 

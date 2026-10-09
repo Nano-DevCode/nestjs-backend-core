@@ -51,3 +51,4 @@ echo "Respaldos almacenados en:"
 echo " - Base de datos:  ./backups/postgres"
 echo " - Almacenamiento: ./backups/storage"
 echo "================================================================="
+

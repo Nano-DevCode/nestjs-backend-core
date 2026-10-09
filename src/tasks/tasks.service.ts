@@ -1,7 +1,8 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Optional } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { PrismaService } from '../prisma/prisma.service';
 import { FilesService } from '../files/files.service';
+import { AlertsService } from '../alerts/alerts.service';
 
 @Injectable()
 export class TasksService {
@@ -10,6 +11,7 @@ export class TasksService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly filesService: FilesService,
+    @Optional() private readonly alertsService?: AlertsService,
   ) {}
 
   // 1. Tarea Diaria a Medianoche: Purga de archivos temporales/huérfanos > 24 horas
@@ -79,6 +81,13 @@ export class TasksService {
       const msg = `🚨 ALERTA: Consumo elevado de memoria RSS (${rssMB} MB > 1500 MB)`;
       alerts.push(msg);
       this.logger.warn(msg);
+      this.alertsService?.sendAlert({
+        title: 'Consumo Elevado de Memoria',
+        message: msg,
+        severity: 'warning',
+        source: 'TasksService / Monitoring',
+        details: { rssMB, threshold: 1500 },
+      });
     }
 
     // Alerta de saturación de Connection Pool en PostgreSQL
@@ -86,6 +95,13 @@ export class TasksService {
       const msg = `🚨 ALERTA: Saturación en Connection Pool de BD (${this.prisma.pool.waitingCount} peticiones en espera)`;
       alerts.push(msg);
       this.logger.error(msg);
+      this.alertsService?.sendAlert({
+        title: 'Saturación en Connection Pool de Base de Datos',
+        message: msg,
+        severity: 'critical',
+        source: 'TasksService / Monitoring',
+        details: { waitingCount: this.prisma.pool.waitingCount, threshold: 10 },
+      });
     }
 
     return {

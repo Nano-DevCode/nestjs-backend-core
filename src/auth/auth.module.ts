@@ -26,6 +26,8 @@ import { PasswordService } from './password.service';
 import { AuthTokenService } from './auth-token.service';
 import { EmailVerificationService } from './email-verification.service';
 
+import { SessionController } from './session.controller';
+
 @Module({
   imports: [
     PassportModule.register({ defaultStrategy: 'jwt' }),
@@ -33,7 +35,12 @@ import { EmailVerificationService } from './email-verification.service';
     MailModule,
     forwardRef(() => TwoFactorModule),
   ],
-  controllers: [AuthController, MobileAuthController, SocialAuthController],
+  controllers: [
+    AuthController,
+    MobileAuthController,
+    SocialAuthController,
+    SessionController,
+  ],
   providers: [
     AuthService,
     SessionService,

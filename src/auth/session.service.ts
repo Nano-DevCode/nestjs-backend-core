@@ -2,11 +2,26 @@ import { Inject, Injectable } from '@nestjs/common';
 import Redis from 'ioredis';
 import { REDIS_CLIENT } from '../redis/redis.constants';
 import type { UserAuthContext } from './interfaces/auth.interface';
+import { parseUserAgent, type ParsedUserAgent } from './utils/user-agent.util';
 
 export interface RotationResult {
   success: boolean;
   isReuse: boolean;
   activeTokenId?: string;
+}
+
+export interface SessionMetadata {
+  ip?: string;
+  userAgent?: string;
+}
+
+export interface UserSessionInfo extends ParsedUserAgent {
+  sessionId: string;
+  ip: string;
+  userAgent: string;
+  createdAt: string;
+  lastActiveAt: string;
+  current: boolean;
 }
 
 @Injectable()
@@ -17,6 +32,7 @@ export class SessionService {
     userId: string,
     tokenId: string,
     ttlSeconds: number,
+    metadata?: SessionMetadata,
   ): Promise<void> {
     const now = Math.floor(Date.now() / 1000);
     const expireAt = now + ttlSeconds;
@@ -29,13 +45,94 @@ export class SessionService {
       await this.redis.del(userSessionsKey);
     }
 
+    const sessionPayload = JSON.stringify({
+      sessionId: tokenId,
+      userId,
+      ip: metadata?.ip || 'Desconocida',
+      userAgent: metadata?.userAgent || 'Desconocido',
+      ...parseUserAgent(metadata?.userAgent),
+      createdAt: new Date().toISOString(),
+      lastActiveAt: new Date().toISOString(),
+    });
+
     await this.redis
       .pipeline()
-      .set(sessionKey, 'active', 'EX', ttlSeconds)
+      .set(sessionKey, sessionPayload, 'EX', ttlSeconds)
       .zremrangebyscore(userSessionsKey, '-inf', now)
       .zadd(userSessionsKey, expireAt, tokenId)
       .expire(userSessionsKey, ttlSeconds)
       .exec();
+  }
+
+  async getUserSessions(
+    userId: string,
+    currentTokenId?: string,
+  ): Promise<UserSessionInfo[]> {
+    const userSessionsKey = `user_sessions:${userId}`;
+    const now = Math.floor(Date.now() / 1000);
+    await this.redis.zremrangebyscore(userSessionsKey, '-inf', now);
+    const tokenIds = await this.redis.zrange(userSessionsKey, '0', '-1');
+
+    if (!tokenIds || tokenIds.length === 0) {
+      return [];
+    }
+
+    const pipeline = this.redis.pipeline();
+    tokenIds.forEach((tid) => pipeline.get(`session:${userId}:${tid}`));
+    const results = await pipeline.exec();
+
+    const sessions: UserSessionInfo[] = [];
+
+    tokenIds.forEach((tid, idx) => {
+      const raw = results?.[idx]?.[1];
+      if (typeof raw === 'string') {
+        try {
+          const parsed = JSON.parse(raw);
+          sessions.push({
+            ...parsed,
+            sessionId: tid,
+            current: tid === currentTokenId,
+          });
+        } catch {
+          // Fallback legacy 'active' string
+          sessions.push({
+            sessionId: tid,
+            ip: 'Desconocida',
+            userAgent: 'Desconocido',
+            deviceType: 'unknown',
+            browser: 'Desconocido',
+            os: 'Desconocido',
+            createdAt: new Date().toISOString(),
+            lastActiveAt: new Date().toISOString(),
+            current: tid === currentTokenId,
+          });
+        }
+      }
+    });
+
+    return sessions;
+  }
+
+  async revokeOtherUserSessions(
+    userId: string,
+    currentTokenId: string,
+  ): Promise<number> {
+    const userSessionsKey = `user_sessions:${userId}`;
+    const tokenIds = await this.redis.zrange(userSessionsKey, '0', '-1');
+    const toRemove = tokenIds.filter((tid) => tid !== currentTokenId);
+
+    if (toRemove.length === 0) return 0;
+
+    const pipeline = this.redis.pipeline();
+    toRemove.forEach((tid) => {
+      pipeline.del(`session:${userId}:${tid}`);
+      pipeline.del(`session_rotated:${userId}:${tid}`);
+      pipeline.zrem(userSessionsKey, tid);
+      pipeline.set(`blacklist:jwt:${tid}`, 'revoked', 'EX', 86400 * 7);
+    });
+    await pipeline.exec();
+
+    return toRemove.length;
   }
 
   async hasSession(userId: string, tokenId: string): Promise<boolean> {
