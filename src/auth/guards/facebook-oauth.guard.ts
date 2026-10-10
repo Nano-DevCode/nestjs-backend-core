@@ -39,9 +39,11 @@ export class FacebookOAuthGuard extends AuthGuard('facebook') {
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const isMasterEnabled =
-      await this.featureFlagsService.isFeatureEnabled('oauth_social_login');
+      (await this.featureFlagsService.isFeatureEnabled('OAUTH_SOCIAL_LOGIN')) ||
+      (await this.featureFlagsService.isFeatureEnabled('oauth_social_login'));
     const isFacebookEnabled =
-      await this.featureFlagsService.isFeatureEnabled('oauth_facebook');
+      (await this.featureFlagsService.isFeatureEnabled('OAUTH_FACEBOOK')) ||
+      (await this.featureFlagsService.isFeatureEnabled('oauth_facebook'));
 
     if (!isMasterEnabled || !isFacebookEnabled) {
       throw new NotFoundException(

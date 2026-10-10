@@ -43,9 +43,11 @@ export class GoogleOAuthGuard extends AuthGuard('google') {
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const isMasterEnabled =
-      await this.featureFlagsService.isFeatureEnabled('oauth_social_login');
+      (await this.featureFlagsService.isFeatureEnabled('OAUTH_SOCIAL_LOGIN')) ||
+      (await this.featureFlagsService.isFeatureEnabled('oauth_social_login'));
     const isGoogleEnabled =
-      await this.featureFlagsService.isFeatureEnabled('oauth_google');
+      (await this.featureFlagsService.isFeatureEnabled('OAUTH_GOOGLE')) ||
+      (await this.featureFlagsService.isFeatureEnabled('oauth_google'));
 
     if (!isMasterEnabled || !isGoogleEnabled) {
       throw new NotFoundException(

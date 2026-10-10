@@ -53,6 +53,24 @@ export const CORE_FEATURE_FLAGS = [
     isEnabled: true,
     rules: { percentage: 100 },
   },
+  {
+    key: 'oauth_social_login',
+    description: 'Autenticación social federada (Alias minúsculas).',
+    isEnabled: true,
+    rules: { percentage: 100 },
+  },
+  {
+    key: 'oauth_google',
+    description: 'Inicio de sesión social con Google OAuth2 (Alias minúsculas).',
+    isEnabled: true,
+    rules: { percentage: 100 },
+  },
+  {
+    key: 'oauth_facebook',
+    description: 'Inicio de sesión social con Facebook Login (Alias minúsculas).',
+    isEnabled: true,
+    rules: { percentage: 100 },
+  },
 ];
 
 @Injectable()
@@ -99,11 +117,20 @@ export class FeatureFlagsService implements OnModuleInit {
     key: string,
     context?: FeatureFlagContext,
   ): Promise<boolean> {
-    const cacheKey = `feature_flag:${key}`;
+    const canonicalKey = key.trim();
+    const upperKey = canonicalKey.toUpperCase();
+    const lowerKey = canonicalKey.toLowerCase();
+    const cacheKey = `feature_flag:${canonicalKey}`;
 
     let cached: string | null = null;
     try {
       cached = await this.redis.get(cacheKey);
+      if (!cached && canonicalKey !== upperKey) {
+        cached = await this.redis.get(`feature_flag:${upperKey}`);
+      }
+      if (!cached && canonicalKey !== lowerKey) {
+        cached = await this.redis.get(`feature_flag:${lowerKey}`);
+      }
     } catch (err) {
       this.logger.warn(
         `Error al consultar Redis para flag '${key}': ${(err as Error).message}`,
@@ -119,10 +146,24 @@ export class FeatureFlagsService implements OnModuleInit {
         flagData = { isEnabled: cached === 'true' };
       }
     } else {
-      const flag = await this.prisma.featureFlag.findUnique({
-        where: { key },
+      let flag = await this.prisma.featureFlag.findUnique({
+        where: { key: canonicalKey },
         select: { isEnabled: true, rules: true },
       });
+
+      if (!flag && canonicalKey !== upperKey) {
+        flag = await this.prisma.featureFlag.findUnique({
+          where: { key: upperKey },
+          select: { isEnabled: true, rules: true },
+        });
+      }
+
+      if (!flag && canonicalKey !== lowerKey) {
+        flag = await this.prisma.featureFlag.findUnique({
+          where: { key: lowerKey },
+          select: { isEnabled: true, rules: true },
+        });
+      }
 
       if (!flag) {
         // Cachear ausencia con TTL reducido para prevenir cache stampede

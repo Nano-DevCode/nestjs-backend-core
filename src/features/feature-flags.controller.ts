@@ -30,11 +30,14 @@ export class FeatureFlagsController {
   @Get('public')
   async getPublicFlags() {
     const isMaster =
-      await this.featureFlagsService.isFeatureEnabled('oauth_social_login');
+      (await this.featureFlagsService.isFeatureEnabled('OAUTH_SOCIAL_LOGIN')) ||
+      (await this.featureFlagsService.isFeatureEnabled('oauth_social_login'));
     const isGoogle =
-      await this.featureFlagsService.isFeatureEnabled('oauth_google');
+      (await this.featureFlagsService.isFeatureEnabled('OAUTH_GOOGLE')) ||
+      (await this.featureFlagsService.isFeatureEnabled('oauth_google'));
     const isFacebook =
-      await this.featureFlagsService.isFeatureEnabled('oauth_facebook');
+      (await this.featureFlagsService.isFeatureEnabled('OAUTH_FACEBOOK')) ||
+      (await this.featureFlagsService.isFeatureEnabled('oauth_facebook'));
     const isDiscordBot =
       await this.featureFlagsService.isFeatureEnabled('DISCORD_BOT_ENABLED');
 
