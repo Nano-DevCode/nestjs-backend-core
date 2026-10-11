@@ -11,9 +11,17 @@ import {
 import { Type } from 'class-transformer';
 
 export class UserProfileInputDto {
-  @IsString({ message: 'El nombre del perfil debe ser una cadena de texto' })
-  @IsOptional()
-  firstName?: string;
+  @IsString({ message: 'El nombre(s) debe ser una cadena de texto' })
+  @IsNotEmpty({ message: 'El nombre(s) es obligatorio' })
+  firstName!: string;
+
+  @IsString({ message: 'El primer apellido debe ser una cadena de texto' })
+  @IsNotEmpty({ message: 'El primer apellido es obligatorio' })
+  firstLastName!: string;
+
+  @IsString({ message: 'El segundo apellido debe ser una cadena de texto' })
+  @IsNotEmpty({ message: 'El segundo apellido es obligatorio' })
+  secondLastName!: string;
 
   @IsString({ message: 'El apellido debe ser una cadena de texto' })
   @IsOptional()
@@ -56,7 +64,7 @@ export class CreateUserDto {
 
   @ValidateNested()
   @Type(() => UserProfileInputDto)
-  @IsOptional()
-  profile?: UserProfileInputDto;
+  @IsNotEmpty({ message: 'El perfil con los nombres y apellidos es obligatorio' })
+  profile!: UserProfileInputDto;
 }
 

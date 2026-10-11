@@ -179,6 +179,10 @@ export class SocialAuthService {
             where: { name: 'user' },
           });
 
+          const lastParts = (profile.lastName || '').trim().split(/\s+/);
+          const firstLastName = lastParts[0] || null;
+          const secondLastName = lastParts.slice(1).join(' ') || null;
+
           const fullName =
             `${profile.firstName || ''} ${profile.lastName || ''}`.trim() ||
             email.split('@')[0];
@@ -193,6 +197,8 @@ export class SocialAuthService {
               profile: {
                 create: {
                   firstName: profile.firstName,
+                  firstLastName,
+                  secondLastName,
                   lastName: profile.lastName,
                   avatarUrl: profile.avatarUrl,
                 },

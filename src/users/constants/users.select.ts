@@ -52,6 +52,8 @@ export const USER_DETAIL_SELECT = {
   profile: {
     select: {
       firstName: true,
+      firstLastName: true,
+      secondLastName: true,
       lastName: true,
       avatarUrl: true,
       bio: true,

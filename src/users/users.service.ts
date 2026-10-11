@@ -74,25 +74,31 @@ export class UsersService {
           }
         }
 
+        const firstName = dto.profile.firstName.trim();
+        const firstLastName = dto.profile.firstLastName.trim();
+        const secondLastName = dto.profile.secondLastName.trim();
+        const fullName = `${firstName} ${firstLastName} ${secondLastName}`.replace(/\s+/g, ' ').trim();
+        const composedLastName = `${firstLastName} ${secondLastName}`.replace(/\s+/g, ' ').trim();
+
         const newUser = await tx.user.create({
           data: {
             email: normalizedEmail,
             password: hashedPassword,
-            name: dto.name?.trim(),
+            name: fullName,
             isActive: dto.isActive ?? true,
             roles: {
               create: roleIdsToAssign.map((roleId) => ({ roleId })),
             },
-            profile: dto.profile
-              ? {
-                  create: {
-                    firstName: dto.profile.firstName?.trim(),
-                    lastName: dto.profile.lastName?.trim(),
-                    bio: dto.profile.bio?.trim(),
-                    avatarUrl: dto.profile.avatarUrl?.trim(),
-                  },
-                }
-              : undefined,
+            profile: {
+              create: {
+                firstName,
+                firstLastName,
+                secondLastName,
+                lastName: composedLastName,
+                bio: dto.profile.bio?.trim(),
+                avatarUrl: dto.profile.avatarUrl?.trim(),
+              },
+            },
           },
           select: USER_DETAIL_SELECT,
         });
@@ -180,13 +186,44 @@ export class UsersService {
             rolesChanged = true;
           }
 
+          let computedFullName: string | undefined;
+          let computedLastName: string | undefined;
+
           if (dto.profile) {
+            const currentProfile = await tx.profile.findUnique({
+              where: { userId: id },
+            });
+            const fName =
+              dto.profile.firstName !== undefined
+                ? dto.profile.firstName?.trim()
+                : currentProfile?.firstName;
+            const fLastName =
+              dto.profile.firstLastName !== undefined
+                ? dto.profile.firstLastName?.trim()
+                : currentProfile?.firstLastName;
+            const sLastName =
+              dto.profile.secondLastName !== undefined
+                ? dto.profile.secondLastName?.trim()
+                : currentProfile?.secondLastName;
+
+            if (fName && fLastName && sLastName) {
+              computedFullName = `${fName} ${fLastName} ${sLastName}`
+                .replace(/\s+/g, ' ')
+                .trim();
+              computedLastName = `${fLastName} ${sLastName}`
+                .replace(/\s+/g, ' ')
+                .trim();
+            }
+
             await tx.profile.upsert({
               where: { userId: id },
               create: {
                 userId: id,
                 firstName: dto.profile.firstName?.trim(),
-                lastName: dto.profile.lastName?.trim(),
+                firstLastName: dto.profile.firstLastName?.trim(),
+                secondLastName: dto.profile.secondLastName?.trim(),
+                lastName:
+                  computedLastName ?? dto.profile.lastName?.trim(),
                 bio: dto.profile.bio?.trim(),
                 avatarUrl: dto.profile.avatarUrl?.trim(),
               },
@@ -194,8 +231,16 @@ export class UsersService {
                 ...(dto.profile.firstName !== undefined && {
                   firstName: dto.profile.firstName?.trim(),
                 }),
-                ...(dto.profile.lastName !== undefined && {
-                  lastName: dto.profile.lastName?.trim(),
+                ...(dto.profile.firstLastName !== undefined && {
+                  firstLastName: dto.profile.firstLastName?.trim(),
+                }),
+                ...(dto.profile.secondLastName !== undefined && {
+                  secondLastName: dto.profile.secondLastName?.trim(),
+                }),
+                ...((computedLastName !== undefined ||
+                  dto.profile.lastName !== undefined) && {
+                  lastName:
+                    computedLastName ?? dto.profile.lastName?.trim(),
                 }),
                 ...(dto.profile.bio !== undefined && {
                   bio: dto.profile.bio?.trim(),
@@ -211,7 +256,10 @@ export class UsersService {
             where: { id },
             data: {
               ...(dto.email && { email: dto.email.toLowerCase().trim() }),
-              ...(dto.name !== undefined && { name: dto.name?.trim() }),
+              ...((dto.name !== undefined || computedFullName !== undefined) && {
+                name:
+                  dto.name !== undefined ? dto.name?.trim() : computedFullName,
+              }),
               ...(dto.isActive !== undefined && { isActive: dto.isActive }),
               ...(hashedPassword && { password: hashedPassword }),
             },
