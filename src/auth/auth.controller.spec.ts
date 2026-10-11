@@ -37,6 +37,7 @@ describe('AuthController', () => {
   beforeEach(async () => {
     authServiceMock = {
       register: jest.fn().mockResolvedValue({ message: 'Registrado con éxito' }),
+      updateProfile: jest.fn().mockResolvedValue({ id: 'user-1', name: 'Carlos Perez Gomez' }),
       verifyEmail: jest.fn().mockResolvedValue({ message: 'Email verificado' }),
       resendVerificationEmail: jest.fn().mockResolvedValue({ message: 'Reenviado' }),
       validateUser: jest.fn().mockResolvedValue({
@@ -53,6 +54,7 @@ describe('AuthController', () => {
         roles: ['user'],
       }),
     };
+
 
     sessionServiceMock = {
       validateAndRotateToken: jest.fn().mockResolvedValue({
@@ -85,19 +87,33 @@ describe('AuthController', () => {
 
   describe('register', () => {
     it('debe registrar un usuario', async () => {
-      const res = await controller.register({
+      const dto = {
         email: 'test@example.com',
         password: 'Password123!',
-        name: 'Tester',
-      });
-      expect(authServiceMock.register).toHaveBeenCalledWith(
-        'test@example.com',
-        'Password123!',
-        'Tester',
-      );
+        firstName: 'Carlos',
+        firstLastName: 'Perez',
+        secondLastName: 'Gomez',
+      };
+      const res = await controller.register(dto);
+      expect(authServiceMock.register).toHaveBeenCalledWith(dto);
       expect(res.message).toBeDefined();
     });
   });
+
+  describe('updateProfile', () => {
+    it('debe actualizar los apellidos y nombre del perfil autenticado', async () => {
+      const req = { user: { id: 'user-1' } } as any;
+      const dto = {
+        firstName: 'Carlos',
+        firstLastName: 'Perez',
+        secondLastName: 'Gomez',
+      };
+      const res = await controller.updateProfile(req, dto);
+      expect(authServiceMock.updateProfile).toHaveBeenCalledWith('user-1', dto);
+      expect(res).toBeDefined();
+    });
+  });
+
 
   describe('verifyEmail y resendVerification', () => {
     it('debe verificar email', async () => {

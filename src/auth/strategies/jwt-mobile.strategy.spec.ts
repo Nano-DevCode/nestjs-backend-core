@@ -116,10 +116,13 @@ describe('JwtMobileStrategy', () => {
     expect(result).toEqual({
       id: 'user-123',
       email: 'test@example.com',
+      name: undefined,
       roles: ['user'],
       permissions: ['read:profile'],
       isTwoFactorEnabled: false,
+      isProfileComplete: false,
     });
+
     expect(prismaService.user.findUnique).toHaveBeenCalledWith({
       where: { id: 'user-123' },
       select: expect.any(Object),

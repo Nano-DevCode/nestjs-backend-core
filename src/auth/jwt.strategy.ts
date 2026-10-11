@@ -118,14 +118,23 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
       0,
     );
 
+    const isProfileComplete = Boolean(
+      user.profile?.firstName?.trim() &&
+        user.profile?.firstLastName?.trim() &&
+        user.profile?.secondLastName?.trim(),
+    );
+
     const authContext: UserAuthContext = {
       id: user.id,
       email: user.email,
+      name: user.name,
       roles: flatRoles,
       permissions: Array.from(new Set(permissionSlugs)),
       isTwoFactorEnabled,
       priority: highestPriority,
+      isProfileComplete,
     };
+
 
     // Almacenar en caché con TTL de 60 segundos
     await this.sessionService.cacheUserAuthContext(

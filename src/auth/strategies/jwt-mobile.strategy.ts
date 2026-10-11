@@ -97,13 +97,22 @@ export class JwtMobileStrategy extends PassportStrategy(
 
     const isTwoFactorEnabled = Boolean(user.twoFactor?.isEnabled);
 
+    const isProfileComplete = Boolean(
+      user.profile?.firstName?.trim() &&
+        user.profile?.firstLastName?.trim() &&
+        user.profile?.secondLastName?.trim(),
+    );
+
     const authContext: UserAuthContext = {
       id: user.id,
       email: user.email,
+      name: user.name,
       roles: flatRoles,
       permissions: Array.from(new Set(permissionSlugs)),
       isTwoFactorEnabled,
+      isProfileComplete,
     };
+
 
     // Almacenar en caché con TTL de 60 segundos
     await this.sessionService.cacheUserAuthContext(

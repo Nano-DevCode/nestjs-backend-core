@@ -23,7 +23,20 @@ export class RegisterDto {
   })
   password!: string;
 
-  @IsString({ message: 'El nombre debe ser una cadena de texto' })
+  @IsString({ message: 'El nombre(s) debe ser una cadena de texto' })
+  @IsNotEmpty({ message: 'El nombre(s) es obligatorio' })
+  firstName!: string;
+
+  @IsString({ message: 'El primer apellido debe ser una cadena de texto' })
+  @IsNotEmpty({ message: 'El primer apellido es obligatorio' })
+  firstLastName!: string;
+
+  @IsString({ message: 'El segundo apellido debe ser una cadena de texto' })
+  @IsNotEmpty({ message: 'El segundo apellido es obligatorio' })
+  secondLastName!: string;
+
+  @IsString({ message: 'El nombre completo debe ser una cadena de texto' })
   @IsOptional()
   name?: string;
 }
+

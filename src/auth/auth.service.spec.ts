@@ -13,12 +13,13 @@ import type { UserAuthContext } from './interfaces/auth.interface';
 describe('AuthService', () => {
   let service: AuthService;
   let prismaMock: {
-    user: { findUnique: jest.Mock; create: jest.Mock };
+    user: { findUnique: jest.Mock; create: jest.Mock; update: jest.Mock };
     role: { findFirst: jest.Mock };
   };
   let sessionServiceMock: {
     revokeSession: jest.Mock;
     blacklistToken: jest.Mock;
+    cacheUserAuthContext: jest.Mock;
   };
   let passwordServiceMock: {
     validatePasswordStrength: jest.Mock;
@@ -49,6 +50,7 @@ describe('AuthService', () => {
       user: {
         findUnique: jest.fn(),
         create: jest.fn(),
+        update: jest.fn(),
       },
       role: {
         findFirst: jest.fn().mockResolvedValue({ id: 'role-user-id' }),
@@ -58,7 +60,9 @@ describe('AuthService', () => {
     sessionServiceMock = {
       revokeSession: jest.fn().mockResolvedValue(undefined),
       blacklistToken: jest.fn().mockResolvedValue(undefined),
+      cacheUserAuthContext: jest.fn().mockResolvedValue(undefined),
     };
+
 
     passwordServiceMock = {
       validatePasswordStrength: jest.fn(),
@@ -128,7 +132,83 @@ describe('AuthService', () => {
       expect(emailVerificationServiceMock.generateAndSendToken).toHaveBeenCalled();
       expect(result.user.id).toBe('new-user-id');
     });
+
+    it('debe crear el usuario con nombre(s), primer apellido y segundo apellido concatenados', async () => {
+      prismaMock.user.findUnique.mockResolvedValue(null);
+      prismaMock.user.create.mockResolvedValue({
+        id: 'user-split-id',
+        email: 'split@example.com',
+        name: 'Carlos Alberto Perez Gomez',
+      });
+
+      const result = await service.register({
+        email: 'split@example.com',
+        password: 'Password123!',
+        firstName: 'Carlos Alberto',
+        firstLastName: 'Perez',
+        secondLastName: 'Gomez',
+      });
+
+      expect(prismaMock.user.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            email: 'split@example.com',
+            name: 'Carlos Alberto Perez Gomez',
+            profile: {
+              create: {
+                firstName: 'Carlos Alberto',
+                firstLastName: 'Perez',
+                secondLastName: 'Gomez',
+                lastName: 'Perez Gomez',
+              },
+            },
+          }),
+        }),
+      );
+      expect(result.user.id).toBe('user-split-id');
+    });
   });
+
+  describe('updateProfile', () => {
+    it('debe actualizar los apellidos, nombre concatenado y retornar UserAuthContext completo', async () => {
+      prismaMock.user.update.mockResolvedValue({
+        id: 'u-1',
+        email: 'split@example.com',
+        name: 'Carlos Alberto Perez Gomez',
+        isActive: true,
+        deletedAt: null,
+        emailVerifiedAt: new Date(),
+        twoFactor: { isEnabled: false },
+        roles: [{ role: { name: 'user', priority: 1, permissions: [] } }],
+        profile: {
+          firstName: 'Carlos Alberto',
+          firstLastName: 'Perez',
+          secondLastName: 'Gomez',
+          lastName: 'Perez Gomez',
+          avatarUrl: null,
+        },
+      });
+
+      const updated = await service.updateProfile('u-1', {
+        firstName: 'Carlos Alberto',
+        firstLastName: 'Perez',
+        secondLastName: 'Gomez',
+      });
+
+      expect(prismaMock.user.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: 'u-1' },
+          data: expect.objectContaining({
+            name: 'Carlos Alberto Perez Gomez',
+          }),
+        }),
+      );
+      expect(updated.name).toBe('Carlos Alberto Perez Gomez');
+      expect(updated.isProfileComplete).toBe(true);
+      expect(sessionServiceMock.cacheUserAuthContext).toHaveBeenCalled();
+    });
+  });
+
 
   describe('validateUser', () => {
     it('debe lanzar UnauthorizedException si las credenciales son inválidas', async () => {

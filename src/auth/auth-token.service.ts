@@ -120,9 +120,11 @@ export class AuthTokenService {
       user: {
         id: user.id,
         email: user.email,
+        name: user.name,
         roles: user.roles,
         permissions: user.permissions,
         isTwoFactorEnabled: user.isTwoFactorEnabled,
+        isProfileComplete: user.isProfileComplete,
       },
     };
   }
@@ -134,8 +136,10 @@ export class AuthTokenService {
     user: {
       id: string;
       email: string;
+      name?: string | null;
       roles: string[];
       isTwoFactorEnabled: boolean;
+      isProfileComplete?: boolean;
     };
     accessToken: string;
     refreshToken: string;
@@ -151,13 +155,16 @@ export class AuthTokenService {
       user: {
         id: user.id,
         email: user.email,
+        name: user.name,
         roles: user.roles,
         isTwoFactorEnabled: user.isTwoFactorEnabled,
+        isProfileComplete: user.isProfileComplete,
       },
       accessToken,
       refreshToken,
     };
   }
+
 
   clearAuthCookies(res: Response): void {
     const getClearOpts = (opts: CookieOptions): CookieOptions => {

@@ -13,6 +13,8 @@ import { TwoFactorService } from '../two-factor/two-factor.service';
 import { PasswordService } from './password.service';
 import { AuthTokenService, AUTH_COOKIE_OPTIONS } from './auth-token.service';
 import { EmailVerificationService } from './email-verification.service';
+import { RegisterDto } from './dto/register.dto';
+import { UpdateProfileDto } from './dto/update-profile.dto';
 import type {
   UserAuthContext,
   UserAuthResponse,
@@ -24,9 +26,19 @@ export { AUTH_COOKIE_OPTIONS };
 export const userAuthSelect = {
   id: true,
   email: true,
+  name: true,
   isActive: true,
   deletedAt: true,
   emailVerifiedAt: true,
+  profile: {
+    select: {
+      firstName: true,
+      firstLastName: true,
+      secondLastName: true,
+      lastName: true,
+      avatarUrl: true,
+    },
+  },
   twoFactor: {
     select: {
       isEnabled: true,
@@ -61,10 +73,20 @@ export type RolePermissionItem = UserRoleItem['role']['permissions'][number];
 export const userValidateSelect = {
   id: true,
   email: true,
+  name: true,
   password: true,
   isActive: true,
   deletedAt: true,
   emailVerifiedAt: true,
+  profile: {
+    select: {
+      firstName: true,
+      firstLastName: true,
+      secondLastName: true,
+      lastName: true,
+      avatarUrl: true,
+    },
+  },
   twoFactor: {
     select: {
       isEnabled: true,
@@ -105,8 +127,74 @@ export class AuthService {
     private readonly twoFactorService: TwoFactorService,
   ) {}
 
-  async register(email: string, pass: string, name?: string) {
-    this.passwordService.validatePasswordStrength(pass);
+  buildUserAuthContext(
+    user: UserAuthPayload | UserValidatePayload,
+  ): UserAuthContext {
+    const flatRoles: string[] = user.roles.map(
+      (ur: UserRoleItem) => ur.role.name,
+    );
+    const permissionSlugs: string[] = user.roles.flatMap((ur: UserRoleItem) =>
+      ur.role.permissions.map((rp: RolePermissionItem) => rp.permission.slug),
+    );
+
+    const isTwoFactorEnabled: boolean = Boolean(user.twoFactor?.isEnabled);
+    const highestPriority = Math.max(
+      ...user.roles.map((ur: UserRoleItem) => ur.role.priority ?? 0),
+      0,
+    );
+
+    const isProfileComplete = Boolean(
+      user.profile?.firstName?.trim() &&
+        user.profile?.firstLastName?.trim() &&
+        user.profile?.secondLastName?.trim(),
+    );
+
+    return {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      roles: flatRoles,
+      permissions: Array.from(new Set(permissionSlugs)),
+      isTwoFactorEnabled,
+      priority: highestPriority,
+      isProfileComplete,
+    };
+  }
+
+  async register(
+    dtoOrEmail: RegisterDto | string,
+    pass?: string,
+    legacyName?: string,
+  ) {
+    let email: string;
+    let passToValidate: string;
+    let firstName: string;
+    let firstLastName: string;
+    let secondLastName: string;
+    let fullName: string;
+
+    if (typeof dtoOrEmail === 'object') {
+      email = dtoOrEmail.email;
+      passToValidate = dtoOrEmail.password;
+      firstName = dtoOrEmail.firstName?.trim() || '';
+      firstLastName = dtoOrEmail.firstLastName?.trim() || '';
+      secondLastName = dtoOrEmail.secondLastName?.trim() || '';
+      fullName =
+        dtoOrEmail.name?.trim() ||
+        `${firstName} ${firstLastName} ${secondLastName}`.trim();
+    } else {
+      email = dtoOrEmail;
+      passToValidate = pass!;
+      const parts = (legacyName || '').trim().split(/\s+/);
+      firstName = parts[0] || '';
+      firstLastName = parts[1] || '';
+      secondLastName = parts.slice(2).join(' ') || '';
+      fullName =
+        legacyName ||
+        `${firstName} ${firstLastName} ${secondLastName}`.trim();
+    }
+
+    this.passwordService.validatePasswordStrength(passToValidate);
 
     const existing = await this.prisma.user.findUnique({
       where: { email },
@@ -120,13 +208,21 @@ export class AuthService {
       where: { name: 'user' },
     });
 
-    const hashedPassword = await this.passwordService.hash(pass);
+    const hashedPassword = await this.passwordService.hash(passToValidate);
 
     const user = await this.prisma.user.create({
       data: {
         email,
         password: hashedPassword,
-        name,
+        name: fullName || null,
+        profile: {
+          create: {
+            firstName: firstName || null,
+            firstLastName: firstLastName || null,
+            secondLastName: secondLastName || null,
+            lastName: `${firstLastName} ${secondLastName}`.trim() || null,
+          },
+        },
         roles: defaultRole
           ? {
               create: {
@@ -178,23 +274,9 @@ export class AuthService {
       );
     }
 
-    const flatRoles: string[] = user.roles.map(
-      (ur: UserRoleItem) => ur.role.name,
-    );
-    const permissionSlugs: string[] = user.roles.flatMap((ur: UserRoleItem) =>
-      ur.role.permissions.map((rp: RolePermissionItem) => rp.permission.slug),
-    );
-
-    const isTwoFactorEnabled: boolean = Boolean(user.twoFactor?.isEnabled);
-
-    return {
-      id: user.id,
-      email: user.email,
-      roles: flatRoles,
-      permissions: Array.from(new Set(permissionSlugs)),
-      isTwoFactorEnabled,
-    };
+    return this.buildUserAuthContext(user);
   }
+
 
   async login(
     user: UserAuthContext,
@@ -271,28 +353,54 @@ export class AuthService {
       );
     }
 
-    const flatRoles: string[] = user.roles.map(
-      (ur: UserRoleItem) => ur.role.name,
-    );
-    const permissionSlugs: string[] = user.roles.flatMap((ur: UserRoleItem) =>
-      ur.role.permissions.map((rp: RolePermissionItem) => rp.permission.slug),
-    );
-
-    const isTwoFactorEnabled: boolean = Boolean(user.twoFactor?.isEnabled);
-    const highestPriority = Math.max(
-      ...user.roles.map((ur: UserRoleItem) => ur.role.priority ?? 0),
-      0,
-    );
-
-    return {
-      id: user.id,
-      email: user.email,
-      roles: flatRoles,
-      permissions: Array.from(new Set(permissionSlugs)),
-      isTwoFactorEnabled,
-      priority: highestPriority,
-    };
+    return this.buildUserAuthContext(user);
   }
+
+  async updateProfile(
+    userId: string,
+    dto: UpdateProfileDto,
+  ): Promise<UserAuthContext> {
+    const firstName = dto.firstName.trim();
+    const firstLastName = dto.firstLastName.trim();
+    const secondLastName = dto.secondLastName.trim();
+    const fullName = `${firstName} ${firstLastName} ${secondLastName}`;
+
+    const user = await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        name: fullName,
+        profile: {
+          upsert: {
+            create: {
+              firstName,
+              firstLastName,
+              secondLastName,
+              lastName: `${firstLastName} ${secondLastName}`.trim(),
+              bio: dto.bio?.trim(),
+              avatarUrl: dto.avatarUrl?.trim(),
+            },
+            update: {
+              firstName,
+              firstLastName,
+              secondLastName,
+              lastName: `${firstLastName} ${secondLastName}`.trim(),
+              ...(dto.bio !== undefined && { bio: dto.bio?.trim() }),
+              ...(dto.avatarUrl !== undefined && {
+                avatarUrl: dto.avatarUrl?.trim(),
+              }),
+            },
+          },
+        },
+      },
+      select: userAuthSelect,
+    });
+
+    const authContext = this.buildUserAuthContext(user);
+    await this.sessionService.cacheUserAuthContext(userId, authContext, 60);
+
+    return authContext;
+  }
+
 
   clearAuthCookies(res: Response): void {
     this.authTokenService.clearAuthCookies(res);

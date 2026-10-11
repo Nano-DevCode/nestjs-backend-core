@@ -1,6 +1,7 @@
 import {
   Controller,
   Post,
+  Patch,
   Body,
   Req,
   Res,
@@ -18,6 +19,7 @@ import { SessionService } from './session.service';
 import { Roles, RequirePermissions } from './decorators/auth.decorator';
 import { PermissionsGuard } from './guards/permissions.guard';
 import { RegisterDto } from './dto/register.dto';
+import { UpdateProfileDto } from './dto/update-profile.dto';
 import { LoginDto } from './dto/login.dto';
 import { VerifyEmailDto } from './dto/verify-email.dto';
 import { ResendVerificationDto } from './dto/resend-verification.dto';
@@ -48,12 +50,18 @@ export class AuthController {
   @Post('register')
   @Throttle({ default: { limit: 5, ttl: 60000 } })
   async register(@Body() registerDto: RegisterDto) {
-    return this.authService.register(
-      registerDto.email,
-      registerDto.password,
-      registerDto.name,
-    );
+    return this.authService.register(registerDto);
   }
+
+  @Patch('profile')
+  @UseGuards(AuthGuard('jwt'))
+  async updateProfile(
+    @Req() req: AuthenticatedRequest,
+    @Body() updateProfileDto: UpdateProfileDto,
+  ) {
+    return this.authService.updateProfile(req.user.id, updateProfileDto);
+  }
+
 
   @Get('verify-email')
   @Throttle({ default: { limit: 10, ttl: 60000 } })

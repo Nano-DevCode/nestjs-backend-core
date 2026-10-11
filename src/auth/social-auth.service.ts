@@ -117,11 +117,17 @@ export class SocialAuthService {
 
         // Actualizar avatar en Profile si no estaba establecido o cambió
         if (profile.avatarUrl) {
+          const lastParts = (profile.lastName || '').trim().split(/\s+/);
+          const firstLastName = lastParts[0] || null;
+          const secondLastName = lastParts.slice(1).join(' ') || null;
+
           await this.prisma.profile.upsert({
             where: { userId: targetUser.id },
             create: {
               userId: targetUser.id,
               firstName: profile.firstName,
+              firstLastName,
+              secondLastName,
               lastName: profile.lastName,
               avatarUrl: profile.avatarUrl,
             },
@@ -155,12 +161,18 @@ export class SocialAuthService {
             },
           });
 
+          const lastParts = (profile.lastName || '').trim().split(/\s+/);
+          const firstLastName = lastParts[0] || null;
+          const secondLastName = lastParts.slice(1).join(' ') || null;
+
           // Asegurar o actualizar el Profile del usuario
           await this.prisma.profile.upsert({
             where: { userId: existingUser.id },
             create: {
               userId: existingUser.id,
               firstName: profile.firstName,
+              firstLastName,
+              secondLastName,
               lastName: profile.lastName,
               avatarUrl: profile.avatarUrl,
             },
@@ -168,6 +180,7 @@ export class SocialAuthService {
               avatarUrl: profile.avatarUrl || undefined,
             },
           });
+
 
           targetUser = existingUser;
           this.logger.log(
@@ -271,13 +284,22 @@ export class SocialAuthService {
           ),
       );
 
+      const isProfileComplete = Boolean(
+        targetUser.profile?.firstName?.trim() &&
+          targetUser.profile?.firstLastName?.trim() &&
+          targetUser.profile?.secondLastName?.trim(),
+      );
+
       const authContext: UserAuthContext = {
         id: targetUser.id,
         email: targetUser.email,
+        name: targetUser.name,
         roles: flatRoles,
         permissions: Array.from(new Set(permissionSlugs)),
         isTwoFactorEnabled: false,
+        isProfileComplete,
       };
+
 
       if (mobileRedirectUri) {
         const mobileTokens =
