@@ -58,8 +58,8 @@ export class PermissionsGuard implements CanActivate {
       );
     }
 
-    // Rol admin tiene acceso completo
-    if (user.roles?.includes('admin')) {
+    // Rol superadmin o admin tiene acceso completo
+    if (user.roles?.includes('superadmin') || user.roles?.includes('admin')) {
       return true;
     }
 

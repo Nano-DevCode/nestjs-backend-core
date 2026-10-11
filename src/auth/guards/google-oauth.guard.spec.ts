@@ -32,7 +32,7 @@ describe('GoogleOAuthGuard', () => {
 
   describe('canActivate', () => {
     it('debe lanzar NotFoundException si el Feature Flag está deshabilitado', async () => {
-      featureFlagsMock.isFeatureEnabled.mockResolvedValueOnce(false);
+      featureFlagsMock.isFeatureEnabled.mockResolvedValue(false);
 
       await expect(guard.canActivate(createMockContext())).rejects.toThrow(
         NotFoundException,

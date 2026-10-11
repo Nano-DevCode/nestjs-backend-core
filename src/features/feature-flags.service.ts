@@ -15,7 +15,7 @@ export const CORE_FEATURE_FLAGS = [
     key: 'DISCORD_BOT_ENABLED',
     description: 'Módulo del bot de música en Discord y orquestación con Lavalink v4.',
     isEnabled: true,
-    rules: { percentage: 100, allowedRoles: ['admin', 'user'] },
+    rules: { percentage: 100, allowedRoles: ['admin', 'superadmin'] },
   },
   {
     key: 'BETA_FEATURE',

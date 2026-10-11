@@ -22,7 +22,7 @@ export const AUTH_COOKIE_OPTIONS = {
     return {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
+      sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 días
       path: '/api/auth', // Permite enviar la cookie con prefijo global 'api' a /api/auth/refresh y /api/auth/logout
     };

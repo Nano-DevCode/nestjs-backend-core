@@ -26,6 +26,7 @@ import { DiscordBotModule } from './discord-bot/discord-bot.module';
 import { AlertsModule } from './alerts/alerts.module';
 import { WebhooksModule } from './webhooks/webhooks.module';
 import { ExportsModule } from './exports/exports.module';
+import { UsersModule } from './users/users.module';
 
 @Module({
   imports: [
@@ -73,6 +74,7 @@ import { ExportsModule } from './exports/exports.module';
     AlertsModule,
     WebhooksModule,
     ExportsModule,
+    UsersModule,
   ],
   controllers: [AppController],
   providers: [

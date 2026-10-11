@@ -2,31 +2,71 @@ import { PrismaClient } from '../generated/prisma/client';
 
 export async function seedRoles(
   prisma: PrismaClient,
-  permissions: { id: string; slug: string }[],
+  permissions?: { id: string; slug: string }[],
 ) {
   console.log('⏳ Sembrando roles y asignaciones...');
 
+  // Si no se proporcionaron permisos, buscarlos en la base de datos
+  const targetPermissions =
+    permissions && permissions.length > 0
+      ? permissions
+      : await prisma.permission.findMany({ select: { id: true, slug: true } });
+
   // 1. Crear roles
+  const superadminRole = await prisma.role.upsert({
+    where: { name: 'superadmin' },
+    update: {
+      priority: 100,
+    },
+    create: {
+      name: 'superadmin',
+      description: 'Dueño absoluto de la plataforma con máxima jerarquía',
+      priority: 100,
+    },
+  });
+
   const adminRole = await prisma.role.upsert({
     where: { name: 'admin' },
-    update: {},
+    update: {
+      priority: 90,
+    },
     create: {
       name: 'admin',
-      description: 'Acceso total a la plataforma',
+      description: 'Administrador operativo de la plataforma',
+      priority: 90,
     },
   });
 
   const userRole = await prisma.role.upsert({
     where: { name: 'user' },
-    update: {},
+    update: {
+      priority: 10,
+    },
     create: {
       name: 'user',
       description: 'Usuario regular con permisos básicos',
+      priority: 10,
     },
   });
 
-  // 2. Asignar todos los permisos al rol admin
-  for (const perm of permissions) {
+  // 2. Asignar todos los permisos a los roles superadmin y admin
+  for (const perm of targetPermissions) {
+    // Permisos a superadmin
+    await prisma.rolePermission.upsert({
+      where: {
+        roleId_permissionId: {
+          roleId: superadminRole.id,
+          permissionId: perm.id,
+        },
+      },
+      update: {},
+      create: {
+        roleId: superadminRole.id,
+        permissionId: perm.id,
+      },
+    });
+
+    // Permisos a admin
     await prisma.rolePermission.upsert({
       where: {
         roleId_permissionId: {
@@ -43,7 +83,7 @@ export async function seedRoles(
   }
 
   // 3. Asignar únicamente lectura básica al rol user
-  const readPerm = permissions.find((p) => p.slug === 'users:read');
+  const readPerm = targetPermissions.find((p) => p.slug === 'users:read');
   if (readPerm) {
     await prisma.rolePermission.upsert({
       where: {
@@ -61,5 +101,5 @@ export async function seedRoles(
   }
 
   console.log('✅ Roles vinculados con permisos.');
-  return { adminRole, userRole };
+  return { superadminRole, adminRole, userRole };
 }

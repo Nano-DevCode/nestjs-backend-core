@@ -22,12 +22,27 @@ export class FacebookOAuthGuard extends AuthGuard('facebook') {
     const redirectUri = req.query?.['redirect_uri'] as string | undefined;
     const platform = req.query?.['platform'] as string | undefined;
 
+    const referer = req.headers?.referer as string | undefined;
+    let webOrigin: string | undefined;
+    if (referer) {
+      try {
+        webOrigin = new URL(referer).origin;
+      } catch {
+        // Fallback silencioso si el referer no es una URL parseable
+      }
+    }
+
+    const effectiveRedirectUri = redirectUri || webOrigin;
+    const effectivePlatform =
+      platform ||
+      (redirectUri && !redirectUri.startsWith('http') ? 'mobile' : 'web');
+
     const baseOptions: Record<string, unknown> = {};
 
-    if (redirectUri || platform) {
+    if (effectiveRedirectUri || platform) {
       const stateData = {
-        redirectUri,
-        platform: platform || (redirectUri ? 'mobile' : undefined),
+        redirectUri: effectiveRedirectUri,
+        platform: effectivePlatform,
       };
       baseOptions['state'] = Buffer.from(JSON.stringify(stateData)).toString(
         'base64url',

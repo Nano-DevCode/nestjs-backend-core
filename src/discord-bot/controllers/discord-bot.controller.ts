@@ -93,7 +93,7 @@ export class PlaybackActionDto {
 
 @Controller('discord')
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles('admin', 'user')
+@Roles('admin', 'superadmin')
 export class DiscordBotController {
   constructor(
     private readonly gateway: DiscordGateway,

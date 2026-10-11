@@ -37,6 +37,7 @@ export const userAuthSelect = {
       role: {
         select: {
           name: true,
+          priority: true,
           permissions: {
             select: {
               permission: {
@@ -74,6 +75,7 @@ export const userValidateSelect = {
       role: {
         select: {
           name: true,
+          priority: true,
           permissions: {
             select: {
               permission: {
@@ -277,6 +279,10 @@ export class AuthService {
     );
 
     const isTwoFactorEnabled: boolean = Boolean(user.twoFactor?.isEnabled);
+    const highestPriority = Math.max(
+      ...user.roles.map((ur: UserRoleItem) => ur.role.priority ?? 0),
+      0,
+    );
 
     return {
       id: user.id,
@@ -284,6 +290,7 @@ export class AuthService {
       roles: flatRoles,
       permissions: Array.from(new Set(permissionSlugs)),
       isTwoFactorEnabled,
+      priority: highestPriority,
     };
   }
 

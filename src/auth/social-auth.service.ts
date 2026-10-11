@@ -33,21 +33,47 @@ export class SocialAuthService {
     res: Response,
     req?: Request,
   ): Promise<void> {
-    const frontendUrl = (
-      process.env.FRONTEND_URL || 'https://sistema.nano-service.com'
-    )
-      .split(',')[0]
-      .trim()
-      .replace(/\/+$/, '');
+    // 1. Resolver lista de orígenes permitidos
+    const configuredOrigins = [
+      ...(process.env.FRONTEND_URL ? process.env.FRONTEND_URL.split(',') : []),
+      ...(process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(',') : []),
+      'https://sistema.nano-service.com',
+      'http://localhost:5173',
+      'http://localhost:3000',
+    ]
+      .map((url) => url.trim().replace(/\/+$/, ''))
+      .filter(Boolean);
 
+    const isDev = process.env.NODE_ENV !== 'production';
+    const defaultWebUrl = isDev
+      ? configuredOrigins.find((o) => o.includes(':5173') || o.includes('localhost')) || 'http://localhost:5173'
+      : configuredOrigins.find((o) => !o.includes('localhost')) || 'https://sistema.nano-service.com';
+
+    let targetFrontendUrl = defaultWebUrl;
     let mobileRedirectUri: string | null = null;
+
     if (req?.query?.['state'] && typeof req.query['state'] === 'string') {
       try {
         const decoded = JSON.parse(
           Buffer.from(req.query['state'], 'base64url').toString('utf8'),
         );
-        if (decoded?.redirectUri && typeof decoded.redirectUri === 'string') {
+        if (
+          decoded?.platform === 'mobile' ||
+          (decoded?.redirectUri && typeof decoded.redirectUri === 'string' && !decoded.redirectUri.startsWith('http'))
+        ) {
           mobileRedirectUri = decoded.redirectUri;
+        } else if (
+          decoded?.redirectUri &&
+          typeof decoded.redirectUri === 'string' &&
+          decoded.redirectUri.startsWith('http')
+        ) {
+          const cleanUrl = decoded.redirectUri.trim().replace(/\/+$/, '');
+          const isAllowed =
+            configuredOrigins.some((origin) => cleanUrl.startsWith(origin)) ||
+            (isDev && cleanUrl.includes('localhost'));
+          if (isAllowed) {
+            targetFrontendUrl = cleanUrl;
+          }
         }
       } catch {
         // Ignorar si el state no es un JSON base64url
@@ -225,7 +251,7 @@ export class SocialAuthService {
         );
 
         // Redirigir a login requiriendo 2FA (cero exposición de tokens en URL)
-        return res.redirect(`${frontendUrl}/login?require2FA=true`);
+        return res.redirect(`${targetFrontendUrl}/login?require2FA=true`);
       }
 
       // 6. Usuario sin 2FA: Crear sesión
@@ -262,7 +288,7 @@ export class SocialAuthService {
       await this.authTokenService.createSessionAndCookies(authContext, res);
 
       // Redirigir al frontend confirmando autenticación exitosa
-      return res.redirect(`${frontendUrl}/login?oauth=success`);
+      return res.redirect(`${targetFrontendUrl}/login?oauth=success`);
     } catch (err: unknown) {
       const message =
         err instanceof Error ? err.message : 'Error de autenticación social';
@@ -276,7 +302,7 @@ export class SocialAuthService {
         );
       }
       return res.redirect(
-        `${frontendUrl}/login?error=${encodeURIComponent(message)}`,
+        `${targetFrontendUrl}/login?error=${encodeURIComponent(message)}`,
       );
     }
   }

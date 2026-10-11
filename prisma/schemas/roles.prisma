@@ -2,6 +2,7 @@ model Role {
   id          String           @id @default(uuid())
   name        String           @unique // Ej: "admin", "client", "support"
   description String?
+  priority    Int              @default(10)
   users       UserRole[]
   permissions RolePermission[]
   createdAt   DateTime         @default(now()) @map("created_at")

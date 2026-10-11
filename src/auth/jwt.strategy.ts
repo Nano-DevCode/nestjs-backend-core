@@ -113,6 +113,10 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
     );
 
     const isTwoFactorEnabled = Boolean(user.twoFactor?.isEnabled);
+    const highestPriority = Math.max(
+      ...user.roles.map((ur: UserRoleItem) => ur.role.priority ?? 0),
+      0,
+    );
 
     const authContext: UserAuthContext = {
       id: user.id,
@@ -120,6 +124,7 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
       roles: flatRoles,
       permissions: Array.from(new Set(permissionSlugs)),
       isTwoFactorEnabled,
+      priority: highestPriority,
     };
 
     // Almacenar en caché con TTL de 60 segundos

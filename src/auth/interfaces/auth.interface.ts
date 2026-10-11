@@ -4,6 +4,7 @@ export interface UserAuthContext {
   roles: string[];
   permissions: string[];
   isTwoFactorEnabled: boolean;
+  priority?: number;
 }
 
 export interface UserAuthResponse {
