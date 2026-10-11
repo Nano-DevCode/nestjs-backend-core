@@ -4,7 +4,6 @@ model Profile {
   firstName      String?  @map("first_name")
   firstLastName  String?  @map("first_last_name")
   secondLastName String?  @map("second_last_name")
-  lastName       String?  @map("last_name")
   avatarUrl      String?  @map("avatar_url")
   bio            String?
   createdAt DateTime @default(now()) @map("created_at")

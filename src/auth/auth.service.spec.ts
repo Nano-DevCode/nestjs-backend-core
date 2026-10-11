@@ -159,7 +159,6 @@ describe('AuthService', () => {
                 firstName: 'Carlos Alberto',
                 firstLastName: 'Perez',
                 secondLastName: 'Gomez',
-                lastName: 'Perez Gomez',
               },
             },
           }),
@@ -184,10 +183,10 @@ describe('AuthService', () => {
           firstName: 'Carlos Alberto',
           firstLastName: 'Perez',
           secondLastName: 'Gomez',
-          lastName: 'Perez Gomez',
           avatarUrl: null,
         },
       });
+
 
       const updated = await service.updateProfile('u-1', {
         firstName: 'Carlos Alberto',

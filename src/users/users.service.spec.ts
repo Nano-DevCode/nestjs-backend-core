@@ -77,8 +77,8 @@ describe('UsersService', () => {
         firstName: 'Juan Carlos',
         firstLastName: 'Pérez',
         secondLastName: 'Gómez',
-        lastName: 'Pérez Gómez',
       },
+
     };
 
     (prisma.$transaction as jest.Mock).mockImplementation(async (callback) => {

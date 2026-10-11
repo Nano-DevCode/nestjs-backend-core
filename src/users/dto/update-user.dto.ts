@@ -21,11 +21,8 @@ export class UpdateUserProfileInputDto {
   @IsOptional()
   secondLastName?: string;
 
-  @IsString({ message: 'El apellido debe ser una cadena de texto' })
-  @IsOptional()
-  lastName?: string;
-
   @IsString({ message: 'La biografía debe ser una cadena de texto' })
+
   @IsOptional()
   bio?: string;
 

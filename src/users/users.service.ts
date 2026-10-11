@@ -78,7 +78,6 @@ export class UsersService {
         const firstLastName = dto.profile.firstLastName.trim();
         const secondLastName = dto.profile.secondLastName.trim();
         const fullName = `${firstName} ${firstLastName} ${secondLastName}`.replace(/\s+/g, ' ').trim();
-        const composedLastName = `${firstLastName} ${secondLastName}`.replace(/\s+/g, ' ').trim();
 
         const newUser = await tx.user.create({
           data: {
@@ -94,7 +93,6 @@ export class UsersService {
                 firstName,
                 firstLastName,
                 secondLastName,
-                lastName: composedLastName,
                 bio: dto.profile.bio?.trim(),
                 avatarUrl: dto.profile.avatarUrl?.trim(),
               },
@@ -102,6 +100,7 @@ export class UsersService {
           },
           select: USER_DETAIL_SELECT,
         });
+
 
         return {
           message: 'Usuario creado exitosamente',
@@ -210,9 +209,6 @@ export class UsersService {
               computedFullName = `${fName} ${fLastName} ${sLastName}`
                 .replace(/\s+/g, ' ')
                 .trim();
-              computedLastName = `${fLastName} ${sLastName}`
-                .replace(/\s+/g, ' ')
-                .trim();
             }
 
             await tx.profile.upsert({
@@ -222,8 +218,6 @@ export class UsersService {
                 firstName: dto.profile.firstName?.trim(),
                 firstLastName: dto.profile.firstLastName?.trim(),
                 secondLastName: dto.profile.secondLastName?.trim(),
-                lastName:
-                  computedLastName ?? dto.profile.lastName?.trim(),
                 bio: dto.profile.bio?.trim(),
                 avatarUrl: dto.profile.avatarUrl?.trim(),
               },
@@ -237,11 +231,6 @@ export class UsersService {
                 ...(dto.profile.secondLastName !== undefined && {
                   secondLastName: dto.profile.secondLastName?.trim(),
                 }),
-                ...((computedLastName !== undefined ||
-                  dto.profile.lastName !== undefined) && {
-                  lastName:
-                    computedLastName ?? dto.profile.lastName?.trim(),
-                }),
                 ...(dto.profile.bio !== undefined && {
                   bio: dto.profile.bio?.trim(),
                 }),
@@ -250,6 +239,7 @@ export class UsersService {
                 }),
               },
             });
+
           }
 
           const userResult = await tx.user.update({

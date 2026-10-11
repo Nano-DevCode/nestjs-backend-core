@@ -35,7 +35,6 @@ export const userAuthSelect = {
       firstName: true,
       firstLastName: true,
       secondLastName: true,
-      lastName: true,
       avatarUrl: true,
     },
   },
@@ -83,7 +82,6 @@ export const userValidateSelect = {
       firstName: true,
       firstLastName: true,
       secondLastName: true,
-      lastName: true,
       avatarUrl: true,
     },
   },
@@ -220,9 +218,9 @@ export class AuthService {
             firstName: firstName || null,
             firstLastName: firstLastName || null,
             secondLastName: secondLastName || null,
-            lastName: `${firstLastName} ${secondLastName}`.trim() || null,
           },
         },
+
         roles: defaultRole
           ? {
               create: {
@@ -375,7 +373,6 @@ export class AuthService {
               firstName,
               firstLastName,
               secondLastName,
-              lastName: `${firstLastName} ${secondLastName}`.trim(),
               bio: dto.bio?.trim(),
               avatarUrl: dto.avatarUrl?.trim(),
             },
@@ -383,13 +380,13 @@ export class AuthService {
               firstName,
               firstLastName,
               secondLastName,
-              lastName: `${firstLastName} ${secondLastName}`.trim(),
               ...(dto.bio !== undefined && { bio: dto.bio?.trim() }),
               ...(dto.avatarUrl !== undefined && {
                 avatarUrl: dto.avatarUrl?.trim(),
               }),
             },
           },
+
         },
       },
       select: userAuthSelect,

@@ -128,13 +128,13 @@ export class SocialAuthService {
               firstName: profile.firstName,
               firstLastName,
               secondLastName,
-              lastName: profile.lastName,
               avatarUrl: profile.avatarUrl,
             },
             update: {
               avatarUrl: profile.avatarUrl,
             },
           });
+
         }
       } else {
         // 3. Buscar usuario por email para Account Linking Seguro
@@ -173,14 +173,12 @@ export class SocialAuthService {
               firstName: profile.firstName,
               firstLastName,
               secondLastName,
-              lastName: profile.lastName,
               avatarUrl: profile.avatarUrl,
             },
             update: {
               avatarUrl: profile.avatarUrl || undefined,
             },
           });
-
 
           targetUser = existingUser;
           this.logger.log(
@@ -212,10 +210,10 @@ export class SocialAuthService {
                   firstName: profile.firstName,
                   firstLastName,
                   secondLastName,
-                  lastName: profile.lastName,
                   avatarUrl: profile.avatarUrl,
                 },
               },
+
               oauthAccounts: {
                 create: {
                   provider: profile.provider,

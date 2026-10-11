@@ -23,11 +23,8 @@ export class UserProfileInputDto {
   @IsNotEmpty({ message: 'El segundo apellido es obligatorio' })
   secondLastName!: string;
 
-  @IsString({ message: 'El apellido debe ser una cadena de texto' })
-  @IsOptional()
-  lastName?: string;
-
   @IsString({ message: 'La biografía debe ser una cadena de texto' })
+
   @IsOptional()
   bio?: string;
 

@@ -54,7 +54,6 @@ export const USER_DETAIL_SELECT = {
       firstName: true,
       firstLastName: true,
       secondLastName: true,
-      lastName: true,
       avatarUrl: true,
       bio: true,
     },
