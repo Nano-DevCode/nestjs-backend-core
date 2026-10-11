@@ -59,6 +59,11 @@ export const CORE_FEATURE_FLAGS: CoreFeatureFlagDefinition[] = [
 export async function seedFeatureFlags(prisma: PrismaClient): Promise<void> {
   console.log('🚩 Verificando / sembrando Feature Flags del sistema...');
 
+  // Depurar alias heredados en minúsculas para mantener SSOT
+  await prisma.featureFlag.deleteMany({
+    where: { key: { in: ['oauth_social_login', 'oauth_google', 'oauth_facebook'] } },
+  });
+
   for (const flag of CORE_FEATURE_FLAGS) {
     await prisma.featureFlag.upsert({
       where: { key: flag.key },

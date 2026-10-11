@@ -4,10 +4,16 @@ export enum RoleName {
   USER = 'user',
 }
 
+export const SYSTEM_ROLE_NAMES: readonly string[] = [
+  RoleName.SUPERADMIN,
+  RoleName.ADMIN,
+  RoleName.USER,
+];
+
 export const ROLE_PRIORITIES: Record<string, number> = {
   [RoleName.SUPERADMIN]: 100, // 👑 Dueño absoluto
-  [RoleName.ADMIN]: 50,      // 🛡️ Administrador operativo
-  [RoleName.USER]: 10,       // 👤 Usuario regular
+  [RoleName.ADMIN]: 90,       // 🛡️ Administrador operativo
+  [RoleName.USER]: 10,        // 👤 Usuario regular
 };
 
 /**

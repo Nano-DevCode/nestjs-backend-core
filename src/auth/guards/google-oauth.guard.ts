@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { FeatureFlagsService } from '../../features/feature-flags.service';
+import { FeatureFlagKey } from '../../features/constants/feature-flags.constant';
 import { GoogleStrategy } from '../strategies/google.strategy';
 
 @Injectable()
@@ -57,12 +58,12 @@ export class GoogleOAuthGuard extends AuthGuard('google') {
   }
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    const isMasterEnabled =
-      (await this.featureFlagsService.isFeatureEnabled('OAUTH_SOCIAL_LOGIN')) ||
-      (await this.featureFlagsService.isFeatureEnabled('oauth_social_login'));
-    const isGoogleEnabled =
-      (await this.featureFlagsService.isFeatureEnabled('OAUTH_GOOGLE')) ||
-      (await this.featureFlagsService.isFeatureEnabled('oauth_google'));
+    const isMasterEnabled = await this.featureFlagsService.isFeatureEnabled(
+      FeatureFlagKey.OAUTH_SOCIAL_LOGIN,
+    );
+    const isGoogleEnabled = await this.featureFlagsService.isFeatureEnabled(
+      FeatureFlagKey.OAUTH_GOOGLE,
+    );
 
     if (!isMasterEnabled || !isGoogleEnabled) {
       throw new NotFoundException(

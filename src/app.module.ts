@@ -27,6 +27,7 @@ import { AlertsModule } from './alerts/alerts.module';
 import { WebhooksModule } from './webhooks/webhooks.module';
 import { ExportsModule } from './exports/exports.module';
 import { UsersModule } from './users/users.module';
+import { RolesModule } from './roles/roles.module';
 
 @Module({
   imports: [
@@ -75,6 +76,7 @@ import { UsersModule } from './users/users.module';
     WebhooksModule,
     ExportsModule,
     UsersModule,
+    RolesModule,
   ],
   controllers: [AppController],
   providers: [

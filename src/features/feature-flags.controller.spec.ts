@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { FeatureFlagsController } from './feature-flags.controller';
 import { FeatureFlagsService } from './feature-flags.service';
+import { FeatureFlagKey } from './constants/feature-flags.constant';
 import { Reflector } from '@nestjs/core';
 
 describe('FeatureFlagsController', () => {
@@ -14,14 +15,14 @@ describe('FeatureFlagsController', () => {
   beforeEach(async () => {
     serviceMock = {
       isFeatureEnabled: jest.fn().mockImplementation((key) => {
-        if (key === 'oauth_social_login') return Promise.resolve(true);
-        if (key === 'oauth_google') return Promise.resolve(true);
-        if (key === 'oauth_facebook') return Promise.resolve(false);
-        if (key === 'DISCORD_BOT_ENABLED') return Promise.resolve(true);
+        if (key === FeatureFlagKey.OAUTH_SOCIAL_LOGIN) return Promise.resolve(true);
+        if (key === FeatureFlagKey.OAUTH_GOOGLE) return Promise.resolve(true);
+        if (key === FeatureFlagKey.OAUTH_FACEBOOK) return Promise.resolve(false);
+        if (key === FeatureFlagKey.DISCORD_BOT_ENABLED) return Promise.resolve(true);
         return Promise.resolve(false);
       }),
       getAllFlags: jest.fn().mockResolvedValue([
-        { key: 'oauth_social_login', isEnabled: true },
+        { key: FeatureFlagKey.OAUTH_SOCIAL_LOGIN, isEnabled: true },
       ]),
       setFeatureFlag: jest.fn().mockResolvedValue({ key: 'test_flag', isEnabled: true }),
     };

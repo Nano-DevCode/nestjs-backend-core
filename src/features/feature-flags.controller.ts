@@ -6,6 +6,8 @@ import { Roles } from '../auth/decorators/auth.decorator';
 import { IsOptional, IsBoolean, IsString } from 'class-validator';
 import type { FeatureFlagRules } from './interfaces/feature-flags.interface';
 
+import { FeatureFlagKey } from './constants/feature-flags.constant';
+
 export class UpdateFeatureFlagDto {
   @IsOptional()
   @IsBoolean()
@@ -29,17 +31,18 @@ export class FeatureFlagsController {
    */
   @Get('public')
   async getPublicFlags() {
-    const isMaster =
-      (await this.featureFlagsService.isFeatureEnabled('OAUTH_SOCIAL_LOGIN')) ||
-      (await this.featureFlagsService.isFeatureEnabled('oauth_social_login'));
-    const isGoogle =
-      (await this.featureFlagsService.isFeatureEnabled('OAUTH_GOOGLE')) ||
-      (await this.featureFlagsService.isFeatureEnabled('oauth_google'));
-    const isFacebook =
-      (await this.featureFlagsService.isFeatureEnabled('OAUTH_FACEBOOK')) ||
-      (await this.featureFlagsService.isFeatureEnabled('oauth_facebook'));
-    const isDiscordBot =
-      await this.featureFlagsService.isFeatureEnabled('DISCORD_BOT_ENABLED');
+    const isMaster = await this.featureFlagsService.isFeatureEnabled(
+      FeatureFlagKey.OAUTH_SOCIAL_LOGIN,
+    );
+    const isGoogle = await this.featureFlagsService.isFeatureEnabled(
+      FeatureFlagKey.OAUTH_GOOGLE,
+    );
+    const isFacebook = await this.featureFlagsService.isFeatureEnabled(
+      FeatureFlagKey.OAUTH_FACEBOOK,
+    );
+    const isDiscordBot = await this.featureFlagsService.isFeatureEnabled(
+      FeatureFlagKey.DISCORD_BOT_ENABLED,
+    );
 
     return {
       oauth_social_login: isMaster,

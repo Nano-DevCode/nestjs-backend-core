@@ -67,4 +67,43 @@ export class UsersHierarchyService {
       );
     }
   }
+
+  /**
+   * Obtiene la prioridad efectiva de un usuario
+   */
+  getUserPriority(currentUser: UserAuthContext | undefined): number {
+    if (!currentUser) return 0;
+    return currentUser.priority ?? getHighestRolePriority(currentUser.roles);
+  }
+
+  /**
+   * Valida que un usuario no pueda crear ni actualizar un rol con prioridad igual o superior a la suya
+   */
+  assertCanSetPriority(
+    currentUser: UserAuthContext | undefined,
+    targetPriority: number,
+  ): void {
+    const currentPriority = this.getUserPriority(currentUser);
+    if (targetPriority >= currentPriority) {
+      throw new ForbiddenException(
+        `No puedes asignar una prioridad (${targetPriority}) igual o superior a la de tu rol (${currentPriority}).`,
+      );
+    }
+  }
+
+  /**
+   * Valida que un usuario no pueda modificar ni eliminar un rol con prioridad igual o mayor a la suya
+   */
+  assertCanManageRolePriority(
+    currentUser: UserAuthContext | undefined,
+    rolePriority: number,
+    action = 'modificar',
+  ): void {
+    const currentPriority = this.getUserPriority(currentUser);
+    if (rolePriority >= currentPriority) {
+      throw new ForbiddenException(
+        `No tienes privilegios suficientes para ${action} un rol con prioridad (${rolePriority}) igual o superior a la tuya (${currentPriority}).`,
+      );
+    }
+  }
 }

@@ -4,6 +4,7 @@ import { REDIS_CLIENT } from '../redis/redis.constants';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationGateway } from '../notifications/notifications.gateway';
 import type { Prisma } from '../../prisma/generated/prisma/client';
+import { FeatureFlagKey } from './constants/feature-flags.constant';
 import type {
   FeatureFlagContext,
   FeatureFlagData,
@@ -12,62 +13,48 @@ import type {
 
 export const CORE_FEATURE_FLAGS = [
   {
-    key: 'DISCORD_BOT_ENABLED',
-    description: 'Módulo del bot de música en Discord y orquestación con Lavalink v4.',
+    key: FeatureFlagKey.DISCORD_BOT_ENABLED,
+    description:
+      'Módulo del bot de música en Discord y orquestación con Lavalink v4.',
     isEnabled: true,
     rules: { percentage: 100, allowedRoles: ['admin', 'superadmin'] },
   },
   {
-    key: 'BETA_FEATURE',
-    description: 'Acceso anticipado a endpoints y herramientas experimentales con verificación @RequireFeature.',
+    key: FeatureFlagKey.BETA_FEATURE,
+    description:
+      'Acceso anticipado a endpoints y herramientas experimentales con verificación @RequireFeature.',
     isEnabled: true,
     rules: { percentage: 100, allowedRoles: ['admin', 'user'] },
   },
   {
-    key: 'DARK_MODE_V2',
-    description: 'Motor de temas visuales dinámicos con soporte OLED y gradientes reactivos.',
+    key: FeatureFlagKey.DARK_MODE_V2,
+    description:
+      'Motor de temas visuales dinámicos con soporte OLED y gradientes reactivos.',
     isEnabled: true,
     rules: { percentage: 100 },
   },
   {
-    key: 'S3_MULTIPART_V2',
-    description: 'Subida paralela por fragmentos (chunks) para archivos pesados mayores a 50 MB.',
+    key: FeatureFlagKey.S3_MULTIPART_V2,
+    description:
+      'Subida paralela por fragmentos (chunks) para archivos pesados mayores a 50 MB.',
     isEnabled: false,
     rules: { percentage: 0, allowedRoles: ['admin'] },
   },
   {
-    key: 'OAUTH_SOCIAL_LOGIN',
+    key: FeatureFlagKey.OAUTH_SOCIAL_LOGIN,
     description: 'Autenticación social federada (Master Switch).',
     isEnabled: true,
     rules: { percentage: 100 },
   },
   {
-    key: 'OAUTH_GOOGLE',
+    key: FeatureFlagKey.OAUTH_GOOGLE,
     description: 'Inicio de sesión social con Google OAuth2.',
     isEnabled: true,
     rules: { percentage: 100 },
   },
   {
-    key: 'OAUTH_FACEBOOK',
+    key: FeatureFlagKey.OAUTH_FACEBOOK,
     description: 'Inicio de sesión social con Facebook Login.',
-    isEnabled: true,
-    rules: { percentage: 100 },
-  },
-  {
-    key: 'oauth_social_login',
-    description: 'Autenticación social federada (Alias minúsculas).',
-    isEnabled: true,
-    rules: { percentage: 100 },
-  },
-  {
-    key: 'oauth_google',
-    description: 'Inicio de sesión social con Google OAuth2 (Alias minúsculas).',
-    isEnabled: true,
-    rules: { percentage: 100 },
-  },
-  {
-    key: 'oauth_facebook',
-    description: 'Inicio de sesión social con Facebook Login (Alias minúsculas).',
     isEnabled: true,
     rules: { percentage: 100 },
   },
@@ -89,6 +76,31 @@ export class FeatureFlagsService implements OnModuleInit {
   }
 
   async ensureCoreFeatureFlags(): Promise<void> {
+    // 1. Depuración automática de alias heredados en minúsculas para mantener SSOT
+    try {
+      const legacyKeys = [
+        'oauth_social_login',
+        'oauth_google',
+        'oauth_facebook',
+      ];
+      const deleted = await this.prisma.featureFlag.deleteMany({
+        where: { key: { in: legacyKeys } },
+      });
+      if (deleted.count > 0) {
+        this.logger.log(
+          `Limpieza de ${deleted.count} alias heredados de Feature Flags completada.`,
+        );
+        for (const k of legacyKeys) {
+          await this.redis.del(`feature_flag:${k}`);
+        }
+      }
+    } catch (err: unknown) {
+      this.logger.warn(
+        `Error al depurar alias heredados de Feature Flags: ${(err as Error).message}`,
+      );
+    }
+
+    // 2. Siembra y verificación de banderas canónicas oficiales
     for (const flag of CORE_FEATURE_FLAGS) {
       try {
         const existing = await this.prisma.featureFlag.findUnique({
@@ -117,20 +129,12 @@ export class FeatureFlagsService implements OnModuleInit {
     key: string,
     context?: FeatureFlagContext,
   ): Promise<boolean> {
-    const canonicalKey = key.trim();
-    const upperKey = canonicalKey.toUpperCase();
-    const lowerKey = canonicalKey.toLowerCase();
+    const canonicalKey = key.trim().toUpperCase();
     const cacheKey = `feature_flag:${canonicalKey}`;
 
     let cached: string | null = null;
     try {
       cached = await this.redis.get(cacheKey);
-      if (!cached && canonicalKey !== upperKey) {
-        cached = await this.redis.get(`feature_flag:${upperKey}`);
-      }
-      if (!cached && canonicalKey !== lowerKey) {
-        cached = await this.redis.get(`feature_flag:${lowerKey}`);
-      }
     } catch (err) {
       this.logger.warn(
         `Error al consultar Redis para flag '${key}': ${(err as Error).message}`,
@@ -146,24 +150,10 @@ export class FeatureFlagsService implements OnModuleInit {
         flagData = { isEnabled: cached === 'true' };
       }
     } else {
-      let flag = await this.prisma.featureFlag.findUnique({
+      const flag = await this.prisma.featureFlag.findUnique({
         where: { key: canonicalKey },
         select: { isEnabled: true, rules: true },
       });
-
-      if (!flag && canonicalKey !== upperKey) {
-        flag = await this.prisma.featureFlag.findUnique({
-          where: { key: upperKey },
-          select: { isEnabled: true, rules: true },
-        });
-      }
-
-      if (!flag && canonicalKey !== lowerKey) {
-        flag = await this.prisma.featureFlag.findUnique({
-          where: { key: lowerKey },
-          select: { isEnabled: true, rules: true },
-        });
-      }
 
       if (!flag) {
         // Cachear ausencia con TTL reducido para prevenir cache stampede
@@ -255,8 +245,9 @@ export class FeatureFlagsService implements OnModuleInit {
     description?: string,
     rules?: FeatureFlagRules,
   ) {
+    const canonicalKey = key.trim().toUpperCase();
     const existing = await this.prisma.featureFlag.findUnique({
-      where: { key },
+      where: { key: canonicalKey },
     });
 
     const finalIsEnabled =
@@ -269,7 +260,7 @@ export class FeatureFlagsService implements OnModuleInit {
         : (existing?.rules as FeatureFlagRules | null);
 
     const flag = await this.prisma.featureFlag.upsert({
-      where: { key },
+      where: { key: canonicalKey },
       update: {
         isEnabled: finalIsEnabled,
         ...(description !== undefined ? { description } : {}),
@@ -278,7 +269,7 @@ export class FeatureFlagsService implements OnModuleInit {
           : {}),
       },
       create: {
-        key,
+        key: canonicalKey,
         isEnabled: finalIsEnabled,
         description: finalDescription,
         ...(finalRules !== undefined
@@ -287,9 +278,12 @@ export class FeatureFlagsService implements OnModuleInit {
       },
     });
 
-    const cacheKey = `feature_flag:${key}`;
+    const cacheKey = `feature_flag:${canonicalKey}`;
     try {
       await this.redis.del(cacheKey);
+      if (key !== canonicalKey) {
+        await this.redis.del(`feature_flag:${key}`);
+      }
       await this.redis.set(
         cacheKey,
         JSON.stringify({ isEnabled: flag.isEnabled, rules: flag.rules }),
@@ -298,7 +292,7 @@ export class FeatureFlagsService implements OnModuleInit {
       );
     } catch (err) {
       this.logger.warn(
-        `Error al sincronizar Redis para flag '${key}': ${(err as Error).message}`,
+        `Error al sincronizar Redis para flag '${canonicalKey}': ${(err as Error).message}`,
       );
     }
 
@@ -325,7 +319,11 @@ export class FeatureFlagsService implements OnModuleInit {
   }
 
   async invalidateCache(key: string): Promise<void> {
-    await this.redis.del(`feature_flag:${key}`);
+    const canonicalKey = key.trim().toUpperCase();
+    await this.redis.del(`feature_flag:${canonicalKey}`);
+    if (key !== canonicalKey) {
+      await this.redis.del(`feature_flag:${key}`);
+    }
   }
 
   async getAllFlags() {

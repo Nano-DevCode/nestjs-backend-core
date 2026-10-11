@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { FeatureFlagsService } from '../../features/feature-flags.service';
+import { FeatureFlagKey } from '../../features/constants/feature-flags.constant';
 import { FacebookStrategy } from '../strategies/facebook.strategy';
 
 @Injectable()
@@ -53,12 +54,12 @@ export class FacebookOAuthGuard extends AuthGuard('facebook') {
   }
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    const isMasterEnabled =
-      (await this.featureFlagsService.isFeatureEnabled('OAUTH_SOCIAL_LOGIN')) ||
-      (await this.featureFlagsService.isFeatureEnabled('oauth_social_login'));
-    const isFacebookEnabled =
-      (await this.featureFlagsService.isFeatureEnabled('OAUTH_FACEBOOK')) ||
-      (await this.featureFlagsService.isFeatureEnabled('oauth_facebook'));
+    const isMasterEnabled = await this.featureFlagsService.isFeatureEnabled(
+      FeatureFlagKey.OAUTH_SOCIAL_LOGIN,
+    );
+    const isFacebookEnabled = await this.featureFlagsService.isFeatureEnabled(
+      FeatureFlagKey.OAUTH_FACEBOOK,
+    );
 
     if (!isMasterEnabled || !isFacebookEnabled) {
       throw new NotFoundException(

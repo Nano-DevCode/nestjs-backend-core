@@ -20,6 +20,7 @@ import { QueueManagerService } from '../queue/queue-manager.service';
 import { DiscordPlaybackService } from '../audio/discord-playback.service';
 import { DiscordGuildService } from '../persistence/discord-guild.service';
 import { FeatureFlagsService } from '../../features/feature-flags.service';
+import { FeatureFlagKey } from '../../features/constants/feature-flags.constant';
 import { ChannelType, PermissionFlagsBits } from 'discord.js';
 
 import {
@@ -105,8 +106,9 @@ export class DiscordBotController {
   ) {}
 
   private async checkBotEnabled(): Promise<void> {
-    const isEnabled =
-      await this.featureFlagsService.isFeatureEnabled('DISCORD_BOT_ENABLED');
+    const isEnabled = await this.featureFlagsService.isFeatureEnabled(
+      FeatureFlagKey.DISCORD_BOT_ENABLED,
+    );
     if (!isEnabled) {
       throw new ServiceUnavailableException(
         'El módulo del bot de Discord está desactivado por Feature Flag (DISCORD_BOT_ENABLED=false).',
@@ -116,8 +118,9 @@ export class DiscordBotController {
 
   @Get('status')
   async getStatus() {
-    const isFeatureEnabled =
-      await this.featureFlagsService.isFeatureEnabled('DISCORD_BOT_ENABLED');
+    const isFeatureEnabled = await this.featureFlagsService.isFeatureEnabled(
+      FeatureFlagKey.DISCORD_BOT_ENABLED,
+    );
     const client = this.gateway.getClient();
     const isClientReady = Boolean(client?.isReady());
     const isLavalinkReady = this.lavalink.isConnected;
