@@ -15,6 +15,7 @@ import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { LogsService } from './logs/logs.service';
 import Redis from 'ioredis';
 import { REDIS_CLIENT } from './redis/redis.constants';
+import { enforceActivationGatekeeper } from './common/security/activation-gatekeeper';
 
 interface HttpServerWithTimeout {
   keepAliveTimeout: number;
@@ -22,6 +23,9 @@ interface HttpServerWithTimeout {
 }
 
 async function bootstrap() {
+  // Candado de seguridad y validación de licencia antes de inicializar cualquier módulo o puerto
+  enforceActivationGatekeeper();
+
   const isProduction = process.env.NODE_ENV === 'production';
   const logLevels: LogLevel[] = isProduction
     ? ['error', 'warn']

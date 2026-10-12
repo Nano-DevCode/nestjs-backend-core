@@ -1,24 +1,33 @@
-# Licencia Comercial Propietaria de Software
+# Licencia Propietaria de Software y Exhibición Técnica (Portfolio License)
 
-Copyright (c) 2026 Manuel Eduardo Santiago Feria. Todos los derechos reservados.
+Copyright (c) 2026 Manuel Eduardo Santiago Feria (Nano-DevCode). Todos los derechos reservados.
 
-Al adquirir y descargar esta plantilla, se le otorga una licencia no exclusiva, 
-intransferible y revocable para utilizar el código bajo los siguientes términos:
+Este repositorio y su código fuente se publican en plataformas públicas (incluyendo GitHub) 
+**ÚNICA Y EXCLUSIVAMENTE CON FINES DE EXHIBICIÓN TÉCNICA, AUDITORÍA DE ARQUITECTURA Y EVALUACIÓN DE PORTAFOLIO PROFESIONAL.**
 
-1. DERECHOS CONCEDIDOS:
-   - Puede modificar y adaptar el código fuente para desarrollar aplicaciones comerciales 
-     o privadas para usted o sus clientes finales.
+Bajo ninguna circunstancia la disponibilidad pública de este código fuente constituye una concesión 
+de derechos de uso, licencia de código abierto (Open Source), dominio público ni transferencia 
+de derechos de propiedad intelectual.
 
-2. RESTRICCIONES ESTRICTAS:
-   - No puede redistribuir, sublicenciar, regalar, alquilar ni revender este código fuente 
-     ni partes sustanciales de él en su forma original o modificada como plantilla, 
-     boilerplate, kit de inicio o producto competidor directo.
-   - No puede publicar el código fuente en repositorios públicos (como GitHub público).
-   - No puede incorporar este código en generadores de código o plataformas SaaS 
-     cuyo propósito principal sea proporcionar plantillas a terceros.
+---
 
-3. EXCLUSIÓN DE GARANTÍA:
-   EL SOFTWARE SE PROPORCIONA "TAL CUAL", SIN GARANTÍAS DE NINGÚN TIPO, EXPRESAS O IMPLÍCITAS. 
-   EN NINGÚN CASO EL AUTOR SERÁ RESPONSABLE DE NINGUNA RECLAMACIÓN, DAÑOS U OTRAS 
-   RESPONSABILIDADES DERIVADAS DEL USO DEL SOFTWARE.
+### 1. CONDICIONES Y USOS PERMITIDOS:
+- **Inspección y Lectura:** Se permite la visualización, lectura y revisión del código fuente exclusivamente con fines de evaluación técnica, contratación o reclutamiento profesional.
+- **Cita y Referencia:** Se permite hacer referencia al diseño arquitectónico citando expresamente al autor original.
 
+### 2. PROHIBICIONES Y RESTRICCIONES ESTRICTAS:
+Queda terminantemente prohibido a cualquier persona física, jurídica u organización sin autorización previa y por escrito del autor:
+- **Ejecución y Despliegue:** Ejecutar, compilar, desplegar o poner en funcionamiento este software en entornos locales, servidores, contenedores Docker o plataformas en la nube para uso comercial, corporativo, personal o lucrativo.
+- **Copia y Clonación con Fines de Uso:** Clonar, reproducir, copiar o incorporar fragmentos o la totalidad de este código en otros proyectos, plantillas (*boilerplates*), soluciones SaaS o productos comerciales o privados.
+- **Redistribución o Sublicenciamiento:** Vender, revender, alquilar, sublicenciar, compartir o distribuir copias de este código fuente o de sus ejecutables compilados.
+- **Evasión de Mecanismos de Seguridad:** Intentar eliminar, deshabilitar, alterar o evadir los mecanismos de activación criptográfica (*Activation Gatekeeper*), validación de licencias o sellos de derechos de autor incorporados en el código.
+
+### 3. LICENCIAMIENTO COMERCIAL:
+Si desea adquirir una licencia comercial válida, autorización de despliegue o contratar servicios de desarrollo basados en esta plataforma, contacte directamente al titular de los derechos:
+
+* **Autor:** Manuel Eduardo Santiago Feria (Nano-DevCode)
+* **Correo Electrónico:** mayka708.ms@gmail.com
+* **GitHub:** https://github.com/Nano-DevCode
+
+### 4. EXCLUSIÓN DE GARANTÍA:
+EL SOFTWARE SE PROPORCIONA "TAL CUAL", SIN GARANTÍAS DE NINGÚN TIPO, EXPRESAS O IMPLÍCITAS. EN NINGÚN CASO EL AUTOR SERÁ RESPONSABLE DE NINGUNA RECLAMACIÓN, DAÑOS O PERJUICIOS DIRECTOS O INDIRECTOS DERIVADOS DEL ACCESO O INTENTO DE USO DEL SOFTWARE.
