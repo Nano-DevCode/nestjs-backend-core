@@ -35,17 +35,17 @@ import { RolesModule } from './roles/roles.module';
       {
         name: 'short',
         ttl: 1000, // 1 segundo
-        limit: 20, // 20 req/segundo (ráfagas cortas)
+        limit: Number(process.env.THROTTLE_LIMIT_SHORT) || 120, // 120 req/s (ráfagas intensas sin falsos positivos)
       },
       {
         name: 'medium',
         ttl: 10000, // 10 segundos
-        limit: 80, // 80 req/10s (actividad continua)
+        limit: Number(process.env.THROTTLE_LIMIT_MEDIUM) || 600, // 600 req/10s (actividad concurrente continua)
       },
       {
         name: 'long',
         ttl: 60000, // 60 segundos
-        limit: 300, // 300 req/minuto (tope de protección)
+        limit: Number(process.env.THROTTLE_LIMIT_LONG) || 2500, // 2500 req/min (protección perimetral anti-scraping)
       },
     ]),
     BullModule.forRoot({

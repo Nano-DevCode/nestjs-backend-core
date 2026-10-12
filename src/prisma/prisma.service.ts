@@ -93,9 +93,9 @@ export class PrismaService
       throw new Error('FATAL: DB_PASSWORD no está configurado en producción.');
     }
 
-    const poolMax = Number(process.env['DB_POOL_MAX']) || 25;
-    const poolMin = Number(process.env['DB_POOL_MIN']) || 5;
-    const poolTimeoutMs = Number(process.env['DB_POOL_TIMEOUT_MS']) || 5000;
+    const poolMax = Number(process.env['DB_POOL_MAX']) || 50;
+    const poolMin = Number(process.env['DB_POOL_MIN']) || 10;
+    const poolTimeoutMs = Number(process.env['DB_POOL_TIMEOUT_MS']) || 10000;
 
     const pool = new Pool({
       connectionString,

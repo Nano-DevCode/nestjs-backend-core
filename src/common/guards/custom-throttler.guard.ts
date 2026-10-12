@@ -37,7 +37,26 @@ export class CustomThrottlerGuard extends ThrottlerGuard {
       }
     }
 
-    // 3. Fallback a IP del cliente para peticiones públicas o anónimas
+    // 3. Si la petición web incluye cookie de sesión access_token (Web SPA antes de resolver passport)
+    const cookies = (request as Record<string, any>).cookies as
+      | Record<string, string | undefined>
+      | undefined;
+    const cookieToken = cookies?.['access_token'];
+    if (typeof cookieToken === 'string') {
+      const parts = cookieToken.split('.');
+      if (parts.length === 3 && parts[2]) {
+        return Promise.resolve(`cookie_token:${parts[2]}`);
+      }
+    }
+
+    // 4. Si el cliente móvil incluye cabecera de dispositivo única
+    const deviceId =
+      request.headers?.['x-device-id'] || request.headers?.['X-Device-Id'];
+    if (typeof deviceId === 'string' && deviceId.trim().length > 0) {
+      return Promise.resolve(`device:${deviceId.trim()}`);
+    }
+
+    // 5. Fallback a IP del cliente para peticiones públicas o anónimas
     const forwarded = request.headers?.['x-forwarded-for'];
     const clientIp =
       typeof forwarded === 'string'
