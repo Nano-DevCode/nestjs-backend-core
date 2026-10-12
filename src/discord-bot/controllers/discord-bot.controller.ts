@@ -22,7 +22,6 @@ import { DiscordGuildService } from '../persistence/discord-guild.service';
 import { FeatureFlagsService } from '../../features/feature-flags.service';
 import { FeatureFlagKey } from '../../features/constants/feature-flags.constant';
 import { ChannelType, PermissionFlagsBits } from 'discord.js';
-
 import {
   IsString,
   IsNotEmpty,
@@ -30,6 +29,13 @@ import {
   IsNumber,
   IsIn,
 } from 'class-validator';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+  ApiParam,
+} from '../../common/scalar/scalar.decorators';
 
 export class SendMessageDto {
   @IsString({ message: 'El guildId debe ser un string' })
@@ -92,6 +98,8 @@ export class PlaybackActionDto {
   value?: number;
 }
 
+@ApiTags('Discord Bot & Audio Engine')
+@ApiBearerAuth('bearer-jwt')
 @Controller('discord')
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles('admin', 'superadmin')
@@ -117,6 +125,13 @@ export class DiscordBotController {
   }
 
   @Get('status')
+  @ApiOperation({
+    summary: 'Consulta el estado de conectividad del bot de Discord y nodo Lavalink',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Estado de conexión, conteo de servidores y colas activas',
+  })
   async getStatus() {
     const isFeatureEnabled = await this.featureFlagsService.isFeatureEnabled(
       FeatureFlagKey.DISCORD_BOT_ENABLED,
@@ -142,6 +157,13 @@ export class DiscordBotController {
   }
 
   @Get('guilds')
+  @ApiOperation({
+    summary: 'Lista los servidores (guilds) de Discord donde el bot está presente',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Listado de servidores, canales de voz y pistas en reproducción',
+  })
   async getGuilds() {
     await this.checkBotEnabled();
     const client = this.gateway.getClient();
@@ -200,6 +222,18 @@ export class DiscordBotController {
   }
 
   @Get('queue/:guildId')
+  @ApiOperation({
+    summary: 'Obtiene la cola de reproducción musical activa de un servidor',
+  })
+  @ApiParam({
+    name: 'guildId',
+    type: String,
+    description: 'Identificador único del servidor Discord (Snowflake)',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Estado de la cola, canción actual, posición y volumen',
+  })
   async getQueue(@Param('guildId') guildId: string) {
     await this.checkBotEnabled();
     const queue = this.queueManager.getQueue(guildId);
@@ -226,6 +260,18 @@ export class DiscordBotController {
   }
 
   @Post('playback/:guildId')
+  @ApiOperation({
+    summary: 'Ejecuta una acción de control de reproducción de audio (play, pause, skip, seek, etc.)',
+  })
+  @ApiParam({
+    name: 'guildId',
+    type: String,
+    description: 'Identificador del servidor Discord',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Acción de reproducción ejecutada exitosamente',
+  })
   async handlePlayback(
     @Param('guildId') guildId: string,
     @Body() dto: PlaybackActionDto,
@@ -366,6 +412,15 @@ export class DiscordBotController {
   }
 
   @Delete('queue/:guildId/tracks/:index')
+  @ApiOperation({
+    summary: 'Elimina una pista específica de la cola de reproducción por su posición',
+  })
+  @ApiParam({ name: 'guildId', description: 'ID del servidor Discord' })
+  @ApiParam({ name: 'index', description: 'Índice de la canción en la cola' })
+  @ApiResponse({
+    status: 200,
+    description: 'Pista eliminada de la cola',
+  })
   async removeTrack(
     @Param('guildId') guildId: string,
     @Param('index') indexStr: string,
@@ -394,6 +449,14 @@ export class DiscordBotController {
   }
 
   @Delete('queue/:guildId')
+  @ApiOperation({
+    summary: 'Vacía todas las canciones pendientes de la cola musical',
+  })
+  @ApiParam({ name: 'guildId', description: 'ID del servidor Discord' })
+  @ApiResponse({
+    status: 200,
+    description: 'Cola vaciada exitosamente',
+  })
   async clearQueue(@Param('guildId') guildId: string) {
     await this.checkBotEnabled();
     const queue = this.queueManager.getQueue(guildId);
@@ -410,6 +473,13 @@ export class DiscordBotController {
   }
 
   @Post('messages/send')
+  @ApiOperation({
+    summary: 'Envía un mensaje de texto a un canal de Discord a través del bot',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Mensaje enviado a Discord',
+  })
   async sendMessage(@Body() dto: SendMessageDto) {
     await this.checkBotEnabled();
     const client = this.gateway.getClient();
@@ -467,6 +537,14 @@ export class DiscordBotController {
   }
 
   @Patch('guilds/:guildId/config')
+  @ApiOperation({
+    summary: 'Actualiza la configuración personalizada del bot en un servidor (canal dedicado)',
+  })
+  @ApiParam({ name: 'guildId', description: 'ID del servidor Discord' })
+  @ApiResponse({
+    status: 200,
+    description: 'Configuración actualizada',
+  })
   async updateGuildConfig(
     @Param('guildId') guildId: string,
     @Body() dto: UpdateGuildConfigDto,

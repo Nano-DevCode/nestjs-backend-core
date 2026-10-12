@@ -232,11 +232,11 @@ async function bootstrap() {
 
   // 3. Especificación OpenAPI generada para la interfaz de Scalar
   const scalarConfig = new DocumentBuilder()
-    .setTitle('Sistema API')
+    .setTitle('Enterprise Backend Core API')
     .setDescription(
-      'API Empresarial con Autenticación 2FA, RBAC, Auditoría, Resiliencia y Almacenamiento S3',
+      'Documentación de referencia OpenAPI 3.1 para la plataforma empresarial NestJS: Autenticación Dual (Web Cookies & Mobile RTR), TOTP 2FA, RBAC jerárquico, Almacenamiento S3 con ClamAV, BullMQ y WebSocket Gateway.',
     )
-    .setVersion('1.0')
+    .setVersion('1.0.0')
     .addBearerAuth(
       {
         type: 'http',
@@ -255,6 +255,98 @@ async function bootstrap() {
         description: 'Cookie de sesión access_token',
       },
       'cookie-jwt',
+    )
+    .addTag(
+      'Auth Web & Core',
+      'Autenticación web basada en cookies HttpOnly, rotación de tokens y control de ciclo de vida de sesión.',
+    )
+    .addTag(
+      'Auth Mobile',
+      'Autenticación para clientes nativos móviles (React Native/Expo) con tokens Bearer y Refresh Token Rotation (RTR).',
+    )
+    .addTag(
+      'Auth Social & OAuth2',
+      'Inicio de sesión social federado con Google y Facebook.',
+    )
+    .addTag(
+      'Auth Sessions',
+      'Gestión, consulta y revocación remota de dispositivos y sesiones activas concurrentes.',
+    )
+    .addTag(
+      'Two-Factor Authentication (2FA / MFA)',
+      'Autenticación de dos pasos con TOTP (RFC 6238), llaves secretas cifradas con AES-256-GCM y códigos de rescate.',
+    )
+    .addTag(
+      'Users Administration',
+      'Administración de usuarios, perfiles, asignación de roles y borrado lógico (soft-delete).',
+    )
+    .addTag(
+      'Roles & RBAC',
+      'Catálogo de roles, asignación de permisos y jerarquía matemática de prioridades.',
+    )
+    .addTag(
+      'Files',
+      'Carga y gestión de archivos en S3/SeaweedFS con desinfección en streaming vía ClamAV y optimización WebP.',
+    )
+    .addTag(
+      'Files Mobile',
+      'Endpoints y URLs prefirmadas optimizadas para cargas directas desde clientes móviles.',
+    )
+    .addTag(
+      'Data Exports',
+      'Exportaciones asíncronas masivas de datos (CSV, JSON, TSV) en segundo plano con BullMQ.',
+    )
+    .addTag(
+      'Feature Flags Management',
+      'Banderas de funcionalidad dinámicas y reglas de activación en caliente.',
+    )
+    .addTag(
+      'API Keys Administration',
+      'Generación, consulta y revocación de API Keys para integraciones seguras de partners.',
+    )
+    .addTag(
+      'External Integrations (Partners)',
+      'Endpoints protegidos por API Key para consumo externo de terceros.',
+    )
+    .addTag(
+      'Notifications',
+      'Gestión de notificaciones internas, conteo de no leídas y Server-Sent Events (SSE).',
+    )
+    .addTag(
+      'PDF Documents',
+      'Generación asíncrona de reportes y previsualización de documentos PDF.',
+    )
+    .addTag(
+      'System Logs',
+      'Registro de incidencias del cliente y consulta de logs de auditoría forense.',
+    )
+    .addTag(
+      'Discord Bot & Audio Engine',
+      'Control operativo del bot de Discord y reproductor musical con Lavalink v4.',
+    )
+    .addTag(
+      'Outbound Webhooks',
+      'Gestión de suscripciones a eventos del sistema y despacho de webhooks con firma HMAC.',
+    )
+    .addTag(
+      'Alerts',
+      'Despacho de alertas operativas a canales de monitoreo (Discord / Slack).',
+    )
+    .addTag(
+      'Health',
+      'Sondas de salud Terminus (PostgreSQL primario, réplica de lectura, Redis y almacenamiento S3).',
+    )
+    .addTag(
+      'Telemetry & Observability',
+      'Métricas de infraestructura y exportación en formato Prometheus / OpenMetrics.',
+    )
+    .addTag(
+      'Mobile Config',
+      'Control de versiones móviles (Force Update) y configuración remota.',
+    )
+    .addTag(
+      'Root & Core Status',
+      'Comprobación básica de estado y características experimentales.',
     )
     .build();
 
