@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="./docs/assets/hero-banner.png" width="100%" alt="NestJS Enterprise Core Platform" />
+  <img src="docs/assets/hero-banner.png" width="100%" alt="NestJS Enterprise Core Platform" />
 </p>
 
 <h1 align="center">Enterprise Backend Core Architecture</h1>
