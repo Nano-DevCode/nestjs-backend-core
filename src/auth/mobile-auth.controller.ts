@@ -231,7 +231,9 @@ export class MobileAuthController {
       user: {
         id: user.id,
         email: user.email,
+        name: user.name,
         roles: user.roles,
+        priority: user.priority,
         permissions: user.permissions,
         isTwoFactorEnabled: user.isTwoFactorEnabled,
       },
