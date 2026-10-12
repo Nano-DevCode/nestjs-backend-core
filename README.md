@@ -406,6 +406,7 @@ pnpm run test:watch
 Para profundizar en áreas específicas de la arquitectura, consulta los manuales especializados incluidos en este repositorio:
 
 - [📚 Catálogo de Decoradores Personalizados (`DECORATORS_README.md`)](./DECORATORS_README.md) — Documentación exhaustiva de `@CurrentUser`, `@RequirePermissions`, `@AuditLog`, decoradores de parámetros y validadores.
+- [📈 Guía de Calibración y Alta Concurrencia (`SCALING_TUNING_GUIDE.md`)](./SCALING_TUNING_GUIDE.md) — Matriz de dimensionamiento, calibración de Throttler, pools de base de datos y NGINX.
 - [🖥️ Especificación del Frontend (`FRONTEND_SPEC_README.md`)](./FRONTEND_SPEC_README.md) — Guía de diseño de arquitectura para el cliente web React + Vite (Zustand, TanStack Table, shadcn/ui).
 - [📱 Especificación para Aplicaciones Móviles (`MOBILE_BACKEND_SPEC.md`)](./MOBILE_BACKEND_SPEC.md) — Directivas técnicas de conexión para React Native / Expo, manejo de reconexiones y paginación por cursor.
 - [🤖 Guía de Operación del Bot de Discord (`DISCORD_BOT_GUIDE.md`)](./DISCORD_BOT_GUIDE.md) — Manual de aprovisionamiento, arquitectura de Shoukaku y nodo Lavalink v4.

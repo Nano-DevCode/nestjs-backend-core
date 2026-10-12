@@ -39,8 +39,7 @@ export class CustomThrottlerGuard extends ThrottlerGuard {
 
     // 3. Si la petición web incluye cookie de sesión access_token (Web SPA antes de resolver passport)
     const cookies = (request as Record<string, any>).cookies as
-      | Record<string, string | undefined>
-      | undefined;
+      Record<string, string | undefined> | undefined;
     const cookieToken = cookies?.['access_token'];
     if (typeof cookieToken === 'string') {
       const parts = cookieToken.split('.');
