@@ -21,6 +21,7 @@ describe('RolesService', () => {
       create: jest.Mock;
       update: jest.Mock;
       delete: jest.Mock;
+      count: jest.Mock;
     };
     permission: {
       findMany: jest.Mock;
@@ -60,6 +61,7 @@ describe('RolesService', () => {
         create: jest.fn(),
         update: jest.fn(),
         delete: jest.fn(),
+        count: jest.fn(),
       },
       permission: {
         findMany: jest.fn(),
@@ -96,6 +98,79 @@ describe('RolesService', () => {
     }).compile();
 
     service = module.get<RolesService>(RolesService);
+  });
+
+  describe('getRoles', () => {
+    it('debe listar roles paginados con metadatos calculados correctamente', async () => {
+      const mockRolesFromDb = [
+        {
+          id: 'role-1',
+          name: 'admin',
+          description: 'Administrador del sistema',
+          priority: 90,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          _count: { users: 2, permissions: 5 },
+          permissions: [
+            {
+              permission: {
+                id: 'p1',
+                slug: 'users:read',
+                description: 'Lectura de usuarios',
+              },
+            },
+          ],
+        },
+      ];
+
+      prismaMock.role.count.mockResolvedValueOnce(1);
+      prismaMock.role.findMany.mockResolvedValueOnce(mockRolesFromDb);
+
+      const result = await service.getRoles({ page: 1, limit: 10 });
+
+      expect(result.total).toBe(1);
+      expect(result.page).toBe(1);
+      expect(result.limit).toBe(10);
+      expect(result.totalPages).toBe(1);
+      expect(result.hasNextPage).toBe(false);
+      expect(result.hasPrevPage).toBe(false);
+      expect(result.roles).toHaveLength(1);
+      expect(result.roles[0].name).toBe('admin');
+      expect(result.roles[0].isSystem).toBe(true);
+      expect(result.roles[0].userCount).toBe(2);
+      expect(result.roles[0].permissionCount).toBe(5);
+    });
+
+    it('debe filtrar roles por búsqueda en nombre o descripción', async () => {
+      prismaMock.role.count.mockResolvedValueOnce(0);
+      prismaMock.role.findMany.mockResolvedValueOnce([]);
+
+      await service.getRoles({ search: 'moderador' });
+
+      expect(prismaMock.role.count).toHaveBeenCalledWith({
+        where: {
+          OR: [
+            { name: { contains: 'moderador', mode: 'insensitive' } },
+            { description: { contains: 'moderador', mode: 'insensitive' } },
+          ],
+        },
+      });
+    });
+
+    it('debe devolver todos los roles sin paginar cuando all es true', async () => {
+      prismaMock.role.count.mockResolvedValueOnce(2);
+      prismaMock.role.findMany.mockResolvedValueOnce([]);
+
+      const result = await service.getRoles({ all: true });
+
+      expect(result.page).toBe(1);
+      expect(result.limit).toBe(2);
+      expect(result.totalPages).toBe(1);
+      expect(result.hasNextPage).toBe(false);
+      expect(prismaMock.role.findMany).toHaveBeenCalledWith(
+        expect.not.objectContaining({ skip: expect.anything() }),
+      );
+    });
   });
 
   describe('createRole', () => {

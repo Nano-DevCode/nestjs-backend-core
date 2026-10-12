@@ -77,7 +77,9 @@ export class UsersService {
         const firstName = dto.profile.firstName.trim();
         const firstLastName = dto.profile.firstLastName.trim();
         const secondLastName = dto.profile.secondLastName.trim();
-        const fullName = `${firstName} ${firstLastName} ${secondLastName}`.replace(/\s+/g, ' ').trim();
+        const fullName = `${firstName} ${firstLastName} ${secondLastName}`
+          .replace(/\s+/g, ' ')
+          .trim();
 
         const newUser = await tx.user.create({
           data: {
@@ -100,7 +102,6 @@ export class UsersService {
           },
           select: USER_DETAIL_SELECT,
         });
-
 
         return {
           message: 'Usuario creado exitosamente',
@@ -186,7 +187,6 @@ export class UsersService {
           }
 
           let computedFullName: string | undefined;
-          let computedLastName: string | undefined;
 
           if (dto.profile) {
             const currentProfile = await tx.profile.findUnique({
@@ -239,14 +239,14 @@ export class UsersService {
                 }),
               },
             });
-
           }
 
           const userResult = await tx.user.update({
             where: { id },
             data: {
               ...(dto.email && { email: dto.email.toLowerCase().trim() }),
-              ...((dto.name !== undefined || computedFullName !== undefined) && {
+              ...((dto.name !== undefined ||
+                computedFullName !== undefined) && {
                 name:
                   dto.name !== undefined ? dto.name?.trim() : computedFullName,
               }),

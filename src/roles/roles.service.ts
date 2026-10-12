@@ -17,6 +17,7 @@ import type { UserAuthContext } from '../auth/interfaces/auth.interface';
 import type { AuditMetadata } from '../common/decorators/audit-context.decorator';
 import { CreateRoleDto } from './dto/create-role.dto';
 import { UpdateRoleDto } from './dto/update-role.dto';
+import { QueryRolesDto } from './dto/query-roles.dto';
 
 @Injectable()
 export class RolesService {
@@ -29,26 +30,48 @@ export class RolesService {
   ) {}
 
   /**
-   * Lista todos los roles disponibles con su conteo de usuarios y permisos vinculados
+   * Lista roles disponibles con paginación, filtros de búsqueda, ordenamiento y estadísticas
    */
-  async getRoles() {
-    const roles = await this.prisma.role.findMany({
-      orderBy: { priority: 'desc' },
-      include: {
-        _count: {
-          select: { users: true, permissions: true },
-        },
-        permissions: {
-          include: {
-            permission: {
-              select: { id: true, slug: true, description: true },
+  async getRoles(query?: QueryRolesDto) {
+    const isAll = query?.all === true;
+    const page = Math.max(1, Number(query?.page) || 1);
+    const limit = Math.max(1, Math.min(100, Number(query?.limit) || 10));
+    const skip = (page - 1) * limit;
+
+    const where: Record<string, any> = {};
+    if (query?.search?.trim()) {
+      const searchTerm = query.search.trim();
+      where.OR = [
+        { name: { contains: searchTerm, mode: 'insensitive' } },
+        { description: { contains: searchTerm, mode: 'insensitive' } },
+      ];
+    }
+
+    const sortBy = query?.sortBy || 'priority';
+    const sortOrder = query?.sortOrder || (sortBy === 'priority' ? 'desc' : 'asc');
+
+    const [total, roles] = await Promise.all([
+      this.prisma.role.count({ where }),
+      this.prisma.role.findMany({
+        where,
+        orderBy: { [sortBy]: sortOrder },
+        ...(isAll ? {} : { skip, take: limit }),
+        include: {
+          _count: {
+            select: { users: true, permissions: true },
+          },
+          permissions: {
+            include: {
+              permission: {
+                select: { id: true, slug: true, description: true },
+              },
             },
           },
         },
-      },
-    });
+      }),
+    ]);
 
-    return roles.map((r) => ({
+    const mappedRoles = roles.map((r) => ({
       id: r.id,
       name: r.name,
       description: r.description,
@@ -60,6 +83,19 @@ export class RolesService {
       createdAt: r.createdAt,
       updatedAt: r.updatedAt,
     }));
+
+    const totalPages = isAll ? 1 : Math.ceil(total / limit) || 1;
+
+    return {
+      roles: mappedRoles,
+      data: mappedRoles,
+      total,
+      page: isAll ? 1 : page,
+      limit: isAll ? total : limit,
+      totalPages,
+      hasNextPage: isAll ? false : page < totalPages,
+      hasPrevPage: isAll ? false : page > 1,
+    };
   }
 
   /**

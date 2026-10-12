@@ -30,9 +30,16 @@ describe('RolesController', () => {
 
   beforeEach(async () => {
     serviceMock = {
-      getRoles: jest.fn().mockResolvedValue([
-        { id: '1', name: 'admin', priority: 90 },
-      ]),
+      getRoles: jest.fn().mockResolvedValue({
+        roles: [{ id: '1', name: 'admin', priority: 90 }],
+        data: [{ id: '1', name: 'admin', priority: 90 }],
+        total: 1,
+        page: 1,
+        limit: 10,
+        totalPages: 1,
+        hasNextPage: false,
+        hasPrevPage: false,
+      }),
       getAllPermissions: jest.fn().mockResolvedValue([
         { id: 'p1', slug: 'users:read', description: 'Lectura' },
       ]),
@@ -68,10 +75,12 @@ describe('RolesController', () => {
     controller = module.get<RolesController>(RolesController);
   });
 
-  it('debe obtener la lista de roles', async () => {
-    const roles = await controller.getRoles();
-    expect(roles).toHaveLength(1);
-    expect(serviceMock.getRoles).toHaveBeenCalled();
+  it('debe obtener la lista de roles paginada', async () => {
+    const query = { page: 1, limit: 10, search: 'admin' };
+    const res = await controller.getRoles(query);
+    expect(res.roles).toHaveLength(1);
+    expect(res.total).toBe(1);
+    expect(serviceMock.getRoles).toHaveBeenCalledWith(query);
   });
 
   it('debe obtener la lista de permisos', async () => {

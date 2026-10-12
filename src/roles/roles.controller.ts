@@ -6,6 +6,7 @@ import {
   Delete,
   Param,
   Body,
+  Query,
   UseGuards,
   HttpCode,
   HttpStatus,
@@ -21,6 +22,7 @@ import { RoleName } from '../auth/constants/roles.constant';
 import { AppPermission } from '../auth/constants/permissions.constant';
 import { CreateRoleDto } from './dto/create-role.dto';
 import { UpdateRoleDto } from './dto/update-role.dto';
+import { QueryRolesDto } from './dto/query-roles.dto';
 
 @Controller('roles')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -29,11 +31,11 @@ export class RolesController {
   constructor(private readonly rolesService: RolesService) {}
 
   /**
-   * Lista todos los roles registrados en el sistema
+   * Lista todos los roles registrados en el sistema con soporte de paginación y filtros
    */
   @Get()
-  async getRoles() {
-    return this.rolesService.getRoles();
+  async getRoles(@Query() query: QueryRolesDto = {}) {
+    return this.rolesService.getRoles(query);
   }
 
   /**
