@@ -16,7 +16,10 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles, RequirePermissions } from '../auth/decorators/auth.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
-import { AuditContext, type AuditMetadata } from '../common/decorators/audit-context.decorator';
+import {
+  AuditContext,
+  type AuditMetadata,
+} from '../common/decorators/audit-context.decorator';
 import type { UserAuthContext } from '../auth/interfaces/auth.interface';
 import { RoleName } from '../auth/constants/roles.constant';
 import { AppPermission } from '../auth/constants/permissions.constant';
@@ -95,4 +98,3 @@ export class RolesController {
     return this.rolesService.deleteRole(id, currentUser, auditMeta);
   }
 }
-

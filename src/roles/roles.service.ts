@@ -2,17 +2,13 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
-  ForbiddenException,
   ConflictException,
   Logger,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { UsersHierarchyService } from '../users/users-hierarchy.service';
 import { AuditService } from '../audit/audit.service';
-import {
-  RoleName,
-  SYSTEM_ROLE_NAMES,
-} from '../auth/constants/roles.constant';
+import { RoleName, SYSTEM_ROLE_NAMES } from '../auth/constants/roles.constant';
 import type { UserAuthContext } from '../auth/interfaces/auth.interface';
 import type { AuditMetadata } from '../common/decorators/audit-context.decorator';
 import { CreateRoleDto } from './dto/create-role.dto';
@@ -48,7 +44,8 @@ export class RolesService {
     }
 
     const sortBy = query?.sortBy || 'priority';
-    const sortOrder = query?.sortOrder || (sortBy === 'priority' ? 'desc' : 'asc');
+    const sortOrder =
+      query?.sortOrder || (sortBy === 'priority' ? 'desc' : 'asc');
 
     const [total, roles] = await Promise.all([
       this.prisma.role.count({ where }),
@@ -133,7 +130,9 @@ export class RolesService {
     });
 
     if (!role) {
-      throw new NotFoundException(`El rol con identificador '${id}' no existe.`);
+      throw new NotFoundException(
+        `El rol con identificador '${id}' no existe.`,
+      );
     }
 
     return {
@@ -141,7 +140,7 @@ export class RolesService {
       name: role.name,
       description: role.description,
       priority: role.priority,
-      isSystem: SYSTEM_ROLE_NAMES.includes(role.name as RoleName),
+      isSystem: SYSTEM_ROLE_NAMES.includes(role.name),
       userCount: role._count.users,
       permissionCount: role._count.permissions,
       permissions: role.permissions.map((rp) => rp.permission),
@@ -241,7 +240,9 @@ export class RolesService {
     });
 
     if (!existingRole) {
-      throw new NotFoundException(`El rol con identificador '${id}' no existe.`);
+      throw new NotFoundException(
+        `El rol con identificador '${id}' no existe.`,
+      );
     }
 
     // 1. Jerarquía: Quien edita debe tener mayor prioridad que el rol objetivo actual
@@ -252,13 +253,21 @@ export class RolesService {
     );
 
     // 2. Protección de Roles Base del Sistema (superadmin, admin, user)
-    const isSystemRole = SYSTEM_ROLE_NAMES.includes(existingRole.name as RoleName);
-    if (isSystemRole && dto.name && dto.name.trim().toLowerCase() !== existingRole.name) {
+    const isSystemRole = SYSTEM_ROLE_NAMES.includes(existingRole.name);
+    if (
+      isSystemRole &&
+      dto.name &&
+      dto.name.trim().toLowerCase() !== existingRole.name
+    ) {
       throw new BadRequestException(
         `El nombre del rol base del sistema '${existingRole.name}' está protegido y no puede renombrarse.`,
       );
     }
-    if (isSystemRole && dto.priority !== undefined && dto.priority !== existingRole.priority) {
+    if (
+      isSystemRole &&
+      dto.priority !== undefined &&
+      dto.priority !== existingRole.priority
+    ) {
       throw new BadRequestException(
         `La jerarquía de prioridad del rol del sistema '${existingRole.name}' está protegida y no puede alterarse.`,
       );
@@ -363,11 +372,13 @@ export class RolesService {
     });
 
     if (!existingRole) {
-      throw new NotFoundException(`El rol con identificador '${id}' no existe.`);
+      throw new NotFoundException(
+        `El rol con identificador '${id}' no existe.`,
+      );
     }
 
     // 1. Prohibir eliminación de roles del sistema
-    if (SYSTEM_ROLE_NAMES.includes(existingRole.name as RoleName)) {
+    if (SYSTEM_ROLE_NAMES.includes(existingRole.name)) {
       throw new BadRequestException(
         `Los roles base del sistema (${SYSTEM_ROLE_NAMES.join(', ')}) son vitales para la plataforma y no pueden ser eliminados.`,
       );

@@ -76,3 +76,4 @@ export class QueryRolesDto {
   @IsBoolean()
   all?: boolean;
 }
+
