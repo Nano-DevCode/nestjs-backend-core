@@ -110,18 +110,63 @@ flowchart TD
 
 ## 📸 Evidencias Técnicas y Métricas de Infraestructura
 
-> [!TIP]
-> Guarda tus capturas de pantalla técnicas dentro de la carpeta [`docs/assets/`](./docs/assets/) para que se muestren automáticamente aquí.
+> [!NOTE]
+> Evidencias reales de ejecución capturadas en entorno local y de pruebas, almacenadas en [`docs/screenshots/`](./docs/screenshots/).
 
-| 📑 Documentación OpenAPI (Scalar) | 🧪 Pruebas Automatizadas (Jest) |
+### 1. Documentación Interactiva de la API (Scalar / OpenAPI)
+| 1.1 Vista General de la API y Catálogo de 23 Módulos | 1.2 Detalle de Endpoint, Esquemas y Consola de Pruebas |
 | :---: | :---: |
-| <img src="./docs/assets/scalar-api-docs.png" width="100%" alt="Documentación Interactiva Scalar" onerror="this.src='./docs/assets/banner.svg'" /> | <img src="./docs/assets/test-results.png" width="100%" alt="Pruebas Jest 100% Passed" onerror="this.src='./docs/assets/banner.svg'" /> |
-| *Exploración interactiva de los 23 controladores en `/api/docs`* | *119 test suites y 627+ casos de prueba (100% Passed)* |
+| <img src="./docs/screenshots/1.1.png" width="100%" alt="Scalar API Overview" /> | <img src="./docs/screenshots/1.2.png" width="100%" alt="Scalar Endpoint Detail" /> |
+| *Navegación completa por dominios en Dark Mode (`/api/docs`)* | *Contratos OpenAPI 3.1 y consola interactiva de peticiones* |
 
-| 🐳 Orquestación de Servicios (Docker Compose) | 🗄️ Modelo de Datos (Prisma Studio) |
+### 2. Calidad de Software y Suite de Pruebas (Jest)
+| 2.1 Ejecución de Suites de Prueba | 2.2 Resumen Final: 119 Suites y 627 Tests (100% Passed) |
 | :---: | :---: |
-| <img src="./docs/assets/docker-services.png" width="100%" alt="Servicios Docker" onerror="this.src='./docs/assets/banner.svg'" /> | <img src="./docs/assets/prisma-studio.png" width="100%" alt="Prisma Studio" onerror="this.src='./docs/assets/banner.svg'" /> |
-| *13 contenedores: Postgres, Redis, ClamAV, SeaweedFS y Nginx* | *Modelado de entidades relacionales con Prisma ORM 7* |
+| <img src="./docs/screenshots/2.1.png" width="100%" alt="Jest Test Execution" /> | <img src="./docs/screenshots/2.8.png" width="100%" alt="Jest Tests 100% Passed" /> |
+| *Validación de guards, interceptores, cifrado y flujos transaccionales* | *119 test suites y 627 casos de prueba aprobados al 100%* |
+
+<details>
+<summary><b>🔍 Ver trazabilidad completa de ejecución de pruebas (Capturas 2.2 a 2.7)</b></summary>
+
+| Ejecución Módulos Core | Ejecución Módulos de Seguridad |
+| :---: | :---: |
+| <img src="./docs/screenshots/2.2.png" width="100%" alt="Jest Suite 2.2" /> | <img src="./docs/screenshots/2.3.png" width="100%" alt="Jest Suite 2.3" /> |
+| <img src="./docs/screenshots/2.4.png" width="100%" alt="Jest Suite 2.4" /> | <img src="./docs/screenshots/2.5.png" width="100%" alt="Jest Suite 2.5" /> |
+| <img src="./docs/screenshots/2.6.png" width="100%" alt="Jest Suite 2.6" /> | <img src="./docs/screenshots/2.7.png" width="100%" alt="Jest Suite 2.7" /> |
+
+</details>
+
+### 3. Infraestructura y Orquestación (Docker Compose)
+| 3.1 Estado de los 13 Contenedores (`healthy` / `Up`) |
+| :---: |
+| <img src="./docs/screenshots/3.1.png" width="100%" alt="Docker Compose Services" /> |
+| *Orquestación de Postgres 16, Redis 7, ClamAV, SeaweedFS S3, Nginx y Certbot en Docker Compose* |
+
+### 4. Modelado Relacional de Datos (Prisma Studio)
+| 4.1 Catálogo de Tablas y Entidades Relacionales |
+| :---: |
+| <img src="./docs/screenshots/4.1.png" width="100%" alt="Prisma Studio Models" /> |
+| *Exploración visual del esquema relacional tipado con Prisma ORM 7 (`http://localhost:5555`)* |
+
+### 5. Resiliencia, Pruebas de Carga y Rate Limiting (Benchmarks)
+
+#### 5.1 Rendimiento Bruto (SIN Rate Limit - Throughput Máximo)
+| 5.1.1 Benchmark Concurrente sin Limitaciones | 5.1.2 Métricas de Latencia y Peticiones por Segundo |
+| :---: | :---: |
+| <img src="./docs/screenshots/5.1.1.png" width="100%" alt="Benchmark Without Rate Limit 1" /> | <img src="./docs/screenshots/5.1.2.png" width="100%" alt="Benchmark Without Rate Limit 2" /> |
+| *Capacidad de absorción de ráfagas masivas sin códigos 429* | *Distribución de latencias (p50, p95, p99) a máxima velocidad* |
+
+#### 5.2 Protección Activa Perimetral (CON Rate Limit - Defensa Anti-DDoS)
+| 5.2.1 Mitigación de Saturación Activa | 5.2.2 Respuestas HTTP 429 Too Many Requests |
+| :---: | :---: |
+| <img src="./docs/screenshots/5.2.1.png" width="100%" alt="Benchmark With Rate Limit 1" /> | <img src="./docs/screenshots/5.2.2.png" width="100%" alt="Benchmark With Rate Limit 2" /> |
+| *El Throttler protege activamente la CPU y la base de datos* | *Bloqueo controlado de ráfagas abusivas protegiendo la disponibilidad* |
+
+### 6. Diagnóstico de Salud y Telemetría
+| 6.1 Estado de Salud del Sistema en Tiempo Real (`/api/health`) |
+| :---: |
+| <img src="./docs/screenshots/6.1.png" width="100%" alt="Health Check JSON" /> |
+| *Diagnóstico JSON de conectividad con PostgreSQL Primario, Réplica, Redis, S3 y métricas de memoria* |
 
 ---
 
