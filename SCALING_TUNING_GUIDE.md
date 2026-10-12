@@ -153,3 +153,4 @@ npx autocannon -c 100 -d 30 http://localhost:3000/api/health
 ```
 
 Revisa que la tasa de errores `429` o `5xx` se mantenga en **0%** bajo tu volumen esperado.
+

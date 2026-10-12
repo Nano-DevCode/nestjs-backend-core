@@ -1,0 +1,152 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 420" width="1200" height="420" fill="none">
+  <defs>
+    <!-- Background Gradients -->
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0a0b10" />
+      <stop offset="50%" stop-color="#0f1118" />
+      <stop offset="100%" stop-color="#08090d" />
+    </linearGradient>
+
+    <!-- Glowing Orbs -->
+    <radialGradient id="nestGlow" cx="20%" cy="30%" r="50%">
+      <stop offset="0%" stop-color="#E0234E" stop-opacity="0.25" />
+      <stop offset="100%" stop-color="#E0234E" stop-opacity="0" />
+    </radialGradient>
+    <radialGradient id="pgGlow" cx="80%" cy="70%" r="50%">
+      <stop offset="0%" stop-color="#4169E1" stop-opacity="0.22" />
+      <stop offset="100%" stop-color="#4169E1" stop-opacity="0" />
+    </radialGradient>
+    <radialGradient id="cyanGlow" cx="50%" cy="50%" r="40%">
+      <stop offset="0%" stop-color="#00D2D3" stop-opacity="0.12" />
+      <stop offset="100%" stop-color="#00D2D3" stop-opacity="0" />
+    </radialGradient>
+
+    <!-- Linear Accents -->
+    <linearGradient id="textGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#FFFFFF" />
+      <stop offset="40%" stop-color="#FFFFFF" />
+      <stop offset="70%" stop-color="#F1F2F6" />
+      <stop offset="100%" stop-color="#E0234E" />
+    </linearGradient>
+
+    <linearGradient id="badgeBorder" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="rgba(255,255,255,0.2)" />
+      <stop offset="100%" stop-color="rgba(255,255,255,0.03)" />
+    </linearGradient>
+
+    <!-- Grid Pattern -->
+    <pattern id="techGrid" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M 40 0 L 0 0 0 40" fill="none" stroke="rgba(255, 255, 255, 0.03)" stroke-width="1" />
+      <circle cx="40" cy="40" r="1" fill="rgba(255, 255, 255, 0.08)" />
+    </pattern>
+
+    <!-- Card Background -->
+    <linearGradient id="cardGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="rgba(255, 255, 255, 0.04)" />
+      <stop offset="100%" stop-color="rgba(255, 255, 255, 0.01)" />
+    </linearGradient>
+  </defs>
+
+  <!-- Base Canvas -->
+  <rect width="1200" height="420" rx="16" fill="url(#bgGrad)" />
+  <rect width="1200" height="420" rx="16" fill="url(#techGrid)" />
+
+  <!-- Ambient Light Halos -->
+  <circle cx="240" cy="140" r="280" fill="url(#nestGlow)" />
+  <circle cx="960" cy="280" r="320" fill="url(#pgGlow)" />
+  <circle cx="600" cy="210" r="240" fill="url(#cyanGlow)" />
+
+  <!-- Canvas Outer Border -->
+  <rect x="1" y="1" width="1198" height="418" rx="15" fill="none" stroke="url(#badgeBorder)" stroke-width="1.5" />
+
+  <!-- Abstract Microservices / Nodes Graph (Background) -->
+  <g opacity="0.35" stroke="rgba(255,255,255,0.15)" stroke-width="1.2">
+    <!-- Connecting lines -->
+    <line x1="120" y1="90" x2="220" y2="150" stroke-dasharray="3 3" />
+    <line x1="220" y1="150" x2="360" y2="120" />
+    <line x1="360" y1="120" x2="480" y2="190" stroke-dasharray="4 2" />
+    <line x1="1080" y1="120" x2="980" y2="180" stroke-dasharray="3 3" />
+    <line x1="980" y1="180" x2="860" y2="140" />
+    <line x1="860" y1="140" x2="740" y2="210" stroke-dasharray="4 2" />
+    
+    <!-- Glowing Node Points -->
+    <circle cx="120" cy="90" r="4" fill="#E0234E" />
+    <circle cx="220" cy="150" r="3" fill="#FFFFFF" />
+    <circle cx="360" cy="120" r="5" fill="#4169E1" />
+    <circle cx="480" cy="190" r="3.5" fill="#00D2D3" />
+    <circle cx="1080" cy="120" r="4" fill="#4169E1" />
+    <circle cx="980" cy="180" r="3.5" fill="#E0234E" />
+    <circle cx="860" cy="140" r="5" fill="#00D2D3" />
+    <circle cx="740" cy="210" r="3" fill="#FFFFFF" />
+  </g>
+
+  <!-- Central Nest Logo Symbol Accent -->
+  <g transform="translate(600, 95)" text-anchor="middle">
+    <!-- Outer Hexagon / Shield Ring -->
+    <polygon points="0,-48 42,-24 42,24 0,48 -42,24 -42,-24" fill="url(#cardGrad)" stroke="rgba(224, 35, 78, 0.4)" stroke-width="1.5" />
+    <circle cx="0" cy="0" r="22" fill="#E0234E" fill-opacity="0.15" />
+    <!-- Nest Cat Silhouette Simplified -->
+    <path d="M -12,12 C -15,4 -10,-10 -6,-16 C -4,-12 -2,-10 0,-10 C 2,-10 4,-12 6,-16 C 10,-10 15,4 12,12 C 8,16 -8,16 -12,12 Z" fill="#E0234E" />
+  </g>
+
+  <!-- Typography: Title & Subtitle -->
+  <text x="600" y="200" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-weight="800" font-size="44" letter-spacing="2" fill="url(#textGrad)">
+    NESTJS ENTERPRISE CORE
+  </text>
+
+  <text x="600" y="240" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-weight="400" font-size="16" letter-spacing="1" fill="#A0AEC0">
+    Production-Grade Scalable &amp; Resilient Modular Platform
+  </text>
+
+  <!-- Architectural Badges Row -->
+  <g transform="translate(195, 290)">
+    <!-- Badge 1: NestJS 12 -->
+    <g transform="translate(0, 0)">
+      <rect width="125" height="36" rx="18" fill="rgba(224, 35, 78, 0.12)" stroke="rgba(224, 35, 78, 0.35)" stroke-width="1" />
+      <circle cx="20" cy="18" r="5" fill="#E0234E" />
+      <text x="34" y="23" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="12" font-weight="600" fill="#FFFFFF">NestJS 12</text>
+    </g>
+
+    <!-- Badge 2: Prisma 7 -->
+    <g transform="translate(135, 0)">
+      <rect width="125" height="36" rx="18" fill="rgba(45, 55, 72, 0.4)" stroke="rgba(255, 255, 255, 0.15)" stroke-width="1" />
+      <circle cx="20" cy="18" r="5" fill="#FFFFFF" />
+      <text x="34" y="23" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="12" font-weight="600" fill="#FFFFFF">Prisma ORM 7</text>
+    </g>
+
+    <!-- Badge 3: PostgreSQL 16 Replicas -->
+    <g transform="translate(270, 0)">
+      <rect width="145" height="36" rx="18" fill="rgba(65, 105, 225, 0.15)" stroke="rgba(65, 105, 225, 0.4)" stroke-width="1" />
+      <circle cx="20" cy="18" r="5" fill="#4169E1" />
+      <text x="34" y="23" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="12" font-weight="600" fill="#FFFFFF">Postgres Replica</text>
+    </g>
+
+    <!-- Badge 4: Redis 7 Redlock -->
+    <g transform="translate(425, 0)">
+      <rect width="125" height="36" rx="18" fill="rgba(220, 56, 45, 0.12)" stroke="rgba(220, 56, 45, 0.35)" stroke-width="1" />
+      <circle cx="20" cy="18" r="5" fill="#DC382D" />
+      <text x="34" y="23" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="12" font-weight="600" fill="#FFFFFF">Redis 7</text>
+    </g>
+
+    <!-- Badge 5: BullMQ Queues -->
+    <g transform="translate(560, 0)">
+      <rect width="125" height="36" rx="18" fill="rgba(255, 87, 34, 0.12)" stroke="rgba(255, 87, 34, 0.35)" stroke-width="1" />
+      <circle cx="20" cy="18" r="5" fill="#FF5722" />
+      <text x="34" y="23" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="12" font-weight="600" fill="#FFFFFF">BullMQ</text>
+    </g>
+
+    <!-- Badge 6: S3 + ClamAV -->
+    <g transform="translate(695, 0)">
+      <rect width="125" height="36" rx="18" fill="rgba(0, 210, 211, 0.12)" stroke="rgba(0, 210, 211, 0.35)" stroke-width="1" />
+      <circle cx="20" cy="18" r="5" fill="#00D2D3" />
+      <text x="34" y="23" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="12" font-weight="600" fill="#FFFFFF">S3 + ClamAV</text>
+    </g>
+  </g>
+
+  <!-- Bottom Accent Highlights -->
+  <g transform="translate(600, 370)" text-anchor="middle">
+    <text font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11" letter-spacing="1.5" fill="#718096">
+      DUAL-TOKEN AUTH  •  HIERARCHICAL RBAC  •  SCALAR OPENAPI  •  FAIL2BAN &amp; NGINX SSL
+    </text>
+  </g>
+</svg>

@@ -1,7 +1,5 @@
 <p align="center">
-  <a href="https://nestjs.com/" target="_blank">
-    <img src="https://nestjs.com/img/logo-small.svg" width="110" alt="Nest Logo" />
-  </a>
+  <img src="./docs/assets/hero-banner.png" width="100%" alt="NestJS Enterprise Core Platform" />
 </p>
 
 <h1 align="center">Enterprise Backend Core Architecture</h1>
@@ -106,8 +104,24 @@ flowchart TD
     
     FilesModule -->|Presigned URLs / Direct Upload| Seaweed_S3
     FilesModule -->|Streaming Scan TCP| ClamAV_Daemon
-    DiscordBot -->|WebSocket Audio Stream| Lavalink_Node
 ```
+
+---
+
+## 📸 Evidencias Técnicas y Métricas de Infraestructura
+
+> [!TIP]
+> Guarda tus capturas de pantalla técnicas dentro de la carpeta [`docs/assets/`](./docs/assets/) para que se muestren automáticamente aquí.
+
+| 📑 Documentación OpenAPI (Scalar) | 🧪 Pruebas Automatizadas (Jest) |
+| :---: | :---: |
+| <img src="./docs/assets/scalar-api-docs.png" width="100%" alt="Documentación Interactiva Scalar" onerror="this.src='./docs/assets/banner.svg'" /> | <img src="./docs/assets/test-results.png" width="100%" alt="Pruebas Jest 100% Passed" onerror="this.src='./docs/assets/banner.svg'" /> |
+| *Exploración interactiva de los 23 controladores en `/api/docs`* | *119 test suites y 627+ casos de prueba (100% Passed)* |
+
+| 🐳 Orquestación de Servicios (Docker Compose) | 🗄️ Modelo de Datos (Prisma Studio) |
+| :---: | :---: |
+| <img src="./docs/assets/docker-services.png" width="100%" alt="Servicios Docker" onerror="this.src='./docs/assets/banner.svg'" /> | <img src="./docs/assets/prisma-studio.png" width="100%" alt="Prisma Studio" onerror="this.src='./docs/assets/banner.svg'" /> |
+| *13 contenedores: Postgres, Redis, ClamAV, SeaweedFS y Nginx* | *Modelado de entidades relacionales con Prisma ORM 7* |
 
 ---
 
