@@ -1,5 +1,10 @@
 import 'multer';
-import { Injectable, BadRequestException, Logger, Optional } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  Logger,
+  Optional,
+} from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { v4 as uuidv4 } from 'uuid';
@@ -26,6 +31,7 @@ import type {
 import type {
   ImageJobPayload,
   ImageDimensionsConfig,
+  ImageProcessingJobPayload,
 } from './interfaces/image-job.interface';
 
 @Injectable()
