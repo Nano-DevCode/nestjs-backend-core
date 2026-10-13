@@ -34,6 +34,7 @@ import {
   RequirePermissions,
   Public,
 } from '../auth/decorators/auth.decorator';
+import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { FilesService } from './files.service';
 import { UploadFileDto } from './dto/upload-file.dto';
 import { FileResponseDto } from './dto/file-response.dto';
@@ -99,6 +100,58 @@ export class FilesController {
       file,
       customName: dto.customName,
       bucket: dto.bucket,
+    });
+  }
+
+  @Post('process-image')
+  @RequirePermissions('files.upload')
+  @Roles('admin', 'user')
+  @Throttle({ default: { limit: 15, ttl: 60000 } })
+  @ApiOperation({
+    summary:
+      'Encola una imagen para optimización asíncrona WebP (variantes Estándar y Miniatura) en BullMQ',
+  })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      required: ['file'],
+      properties: {
+        file: {
+          type: 'string',
+          format: 'binary',
+          description: 'Imagen a procesar (JPEG, PNG, WebP, etc. máx 5 MB)',
+        },
+        bucket: {
+          type: 'string',
+          description: 'Bucket de destino en S3 (opcional)',
+        },
+      },
+    },
+  })
+  @UseInterceptors(
+    FileInterceptor('file', {
+      limits: { fileSize: MAX_FILE_SIZE },
+    }),
+  )
+  @ApiResponse({
+    status: 202,
+    description:
+      'Imagen encolada exitosamente para procesamiento asíncrono en segundo plano',
+  })
+  async processImage(
+    @UploadedFile() file: Express.Multer.File,
+    @CurrentUser('id') userId: string,
+    @Body('bucket') bucket?: string,
+  ) {
+    if (!file) {
+      throw new BadRequestException('El campo "file" es obligatorio');
+    }
+
+    return this.filesService.enqueueImageOptimization({
+      file,
+      userId: userId || 'anonymous',
+      bucket,
     });
   }
 

@@ -247,4 +247,19 @@ export class S3StorageService implements OnModuleInit {
       return false;
     }
   }
+
+  async getFileBuffer(
+    bucket: string = DEFAULT_BUCKET,
+    key: string,
+  ): Promise<Buffer> {
+    const { stream } = await this.getFileStream(bucket, key);
+    return new Promise((resolve, reject) => {
+      const chunks: Buffer[] = [];
+      stream.on('data', (chunk: unknown) => {
+        chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk as ArrayBuffer));
+      });
+      stream.on('end', () => resolve(Buffer.concat(chunks)));
+      stream.on('error', (err) => reject(err));
+    });
+  }
 }

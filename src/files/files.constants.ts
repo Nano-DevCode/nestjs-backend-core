@@ -1,4 +1,4 @@
-﻿export const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB
+export const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB
 
 export const SUPPORTED_IMAGE_MIMETYPES = [
   'image/jpeg',
@@ -11,3 +11,5 @@ export const SUPPORTED_IMAGE_MIMETYPES = [
 ];
 
 export const DEFAULT_BUCKET = process.env['S3_BUCKET'] || 'sistema-files';
+
+export const IMAGE_PROCESSING_QUEUE = 'image-processing-queue';
