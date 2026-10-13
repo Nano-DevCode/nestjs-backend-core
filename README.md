@@ -18,7 +18,7 @@
   <img src="https://img.shields.io/badge/Redis-v7.x-DC382D?style=for-the-badge&logo=redis&logoColor=white" alt="Redis" />
   <img src="https://img.shields.io/badge/BullMQ-Worker_Queues-FF5722?style=for-the-badge&logo=redis&logoColor=white" alt="BullMQ" />
   <img src="https://img.shields.io/badge/Docker_Compose-14_Services-2496ED?style=for-the-badge&logo=docker&logoColor=white" alt="Docker" />
-  <img src="https://img.shields.io/badge/Jest_Tests-122_Suites_Passed-C21325?style=for-the-badge&logo=jest&logoColor=white" alt="Jest" />
+  <img src="https://img.shields.io/badge/Jest_Tests-123_Suites_Passed-C21325?style=for-the-badge&logo=jest&logoColor=white" alt="Jest" />
   <img src="https://img.shields.io/badge/API_Docs-Scalar_OpenAPI_3.1-000000?style=for-the-badge&logo=openapiinitiative&logoColor=white" alt="Scalar Docs" />
 </p>
 
@@ -505,8 +505,8 @@ pnpm run test:watch
 ```
 
 ### Métricas de Calidad
-- **Suites de Prueba**: `122 test suites` pasando al 100%.
-- **Casos de Prueba**: `639 tests` ejecutados sin fallos.
+- **Suites de Prueba**: `123 test suites` pasando al 100%.
+- **Casos de Prueba**: `643 tests` ejecutados sin fallos.
 - **Herramientas de Estrés y Rendimiento**:
   - `pnpm benchmark`: Ejecución de pruebas de carga HTTP.
   - `pnpm test:stress`: Pruebas de concurrencia y validación de cerrojos distribuidos.

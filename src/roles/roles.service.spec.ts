@@ -6,6 +6,7 @@ import {
   ConflictException,
 } from '@nestjs/common';
 import { RolesService } from './roles.service';
+import { RolesQueryService } from './roles-query.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { UsersHierarchyService } from '../users/users-hierarchy.service';
 import { AuditService } from '../audit/audit.service';
@@ -91,6 +92,7 @@ describe('RolesService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         RolesService,
+        RolesQueryService,
         { provide: PrismaService, useValue: prismaMock },
         { provide: UsersHierarchyService, useValue: hierarchyMock },
         { provide: AuditService, useValue: auditMock },

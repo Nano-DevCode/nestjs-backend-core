@@ -18,6 +18,10 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
 import { RequirePermissions } from '../auth/decorators/auth.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
+import {
+  AuditContext,
+  type AuditMetadata,
+} from '../common/decorators/audit-context.decorator';
 import type { UserAuthContext } from '../auth/interfaces/auth.interface';
 import { AppPermission } from '../auth/constants/permissions.constant';
 import {
@@ -94,8 +98,9 @@ export class UsersController {
   create(
     @Body() createUserDto: CreateUserDto,
     @CurrentUser() currentUser: UserAuthContext,
+    @AuditContext() auditMeta?: AuditMetadata,
   ) {
-    return this.usersService.create(createUserDto, currentUser);
+    return this.usersService.create(createUserDto, currentUser, auditMeta);
   }
 
   @Patch(':id')
@@ -120,8 +125,9 @@ export class UsersController {
     @Param('id', ParseUUIDPipe) id: string,
     @Body() updateUserDto: UpdateUserDto,
     @CurrentUser() currentUser: UserAuthContext,
+    @AuditContext() auditMeta?: AuditMetadata,
   ) {
-    return this.usersService.update(id, updateUserDto, currentUser);
+    return this.usersService.update(id, updateUserDto, currentUser, auditMeta);
   }
 
   @Delete(':id')
@@ -145,8 +151,9 @@ export class UsersController {
   async remove(
     @Param('id', ParseUUIDPipe) id: string,
     @CurrentUser() currentUser: UserAuthContext,
+    @AuditContext() auditMeta?: AuditMetadata,
   ) {
-    return this.usersService.softDelete(id, currentUser);
+    return this.usersService.softDelete(id, currentUser, auditMeta);
   }
 
   @Patch(':id/restore')
@@ -166,7 +173,8 @@ export class UsersController {
   async restore(
     @Param('id', ParseUUIDPipe) id: string,
     @CurrentUser() currentUser: UserAuthContext,
+    @AuditContext() auditMeta?: AuditMetadata,
   ) {
-    return this.usersService.restore(id, currentUser);
+    return this.usersService.restore(id, currentUser, auditMeta);
   }
 }

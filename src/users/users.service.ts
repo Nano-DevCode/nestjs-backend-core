@@ -12,8 +12,10 @@ import { SessionService } from '../auth/session.service';
 import { PasswordService } from '../auth/password.service';
 import { UsersHierarchyService } from './users-hierarchy.service';
 import { UsersQueryService } from './users-query.service';
+import { AuditService } from '../audit/audit.service';
 import { USER_DETAIL_SELECT } from './constants/users.select';
 import type { UserAuthContext } from '../auth/interfaces/auth.interface';
+import type { AuditMetadata } from '../common/decorators/audit-context.decorator';
 
 @Injectable()
 export class UsersService {
@@ -23,6 +25,7 @@ export class UsersService {
     private readonly passwordService: PasswordService,
     private readonly hierarchyService: UsersHierarchyService,
     private readonly queryService: UsersQueryService,
+    private readonly auditService: AuditService,
   ) {}
 
   // ==========================================
@@ -41,13 +44,22 @@ export class UsersService {
   // MUTACIONES / CICLO DE VIDA
   // ==========================================
 
-  async create(dto: CreateUserDto, currentUser?: UserAuthContext) {
+  async create(
+    dto: CreateUserDto,
+    currentUser?: UserAuthContext,
+    auditMeta?: AuditMetadata,
+  ) {
     this.passwordService.validatePasswordStrength(dto.password);
     const hashedPassword = await this.passwordService.hash(dto.password);
     const normalizedEmail = dto.email.toLowerCase().trim();
 
+    let createdResult: {
+      message: string;
+      user: any;
+    };
+
     try {
-      return await this.prisma.$transaction(async (tx) => {
+      createdResult = await this.prisma.$transaction(async (tx) => {
         let roleIdsToAssign: string[] = [];
 
         if (dto.roles && dto.roles.length > 0) {
@@ -119,9 +131,31 @@ export class UsersService {
       }
       throw error;
     }
+
+    if (auditMeta) {
+      await this.auditService.log({
+        context: auditMeta,
+        action: 'USER_CREATED',
+        entity: 'User',
+        entityId: createdResult.user.id,
+        details: {
+          email: createdResult.user.email,
+          name: createdResult.user.name,
+          isActive: createdResult.user.isActive,
+          roles: dto.roles ?? ['user'],
+        },
+      });
+    }
+
+    return createdResult;
   }
 
-  async update(id: string, dto: UpdateUserDto, currentUser?: UserAuthContext) {
+  async update(
+    id: string,
+    dto: UpdateUserDto,
+    currentUser?: UserAuthContext,
+    auditMeta?: AuditMetadata,
+  ) {
     try {
       const { updatedUser, shouldRevokeSessions } =
         await this.prisma.$transaction(async (tx) => {
@@ -267,6 +301,22 @@ export class UsersService {
         await this.sessionService.revokeAllUserSessions(id);
       }
 
+      if (auditMeta) {
+        await this.auditService.log({
+          context: auditMeta,
+          action: 'USER_UPDATED',
+          entity: 'User',
+          entityId: id,
+          details: {
+            email: dto.email ? dto.email.toLowerCase().trim() : undefined,
+            name: dto.name,
+            isActive: dto.isActive,
+            roles: dto.roles,
+            passwordUpdated: Boolean(dto.password),
+          },
+        });
+      }
+
       return {
         message: 'Usuario actualizado exitosamente',
         user: updatedUser,
@@ -286,7 +336,11 @@ export class UsersService {
     }
   }
 
-  async softDelete(id: string, currentUser?: UserAuthContext) {
+  async softDelete(
+    id: string,
+    currentUser?: UserAuthContext,
+    auditMeta?: AuditMetadata,
+  ) {
     this.hierarchyService.assertNotSelf(
       currentUser?.id,
       id,
@@ -323,13 +377,30 @@ export class UsersService {
 
     await this.sessionService.revokeAllUserSessions(id);
 
+    if (auditMeta) {
+      await this.auditService.log({
+        context: auditMeta,
+        action: 'USER_SOFT_DELETED',
+        entity: 'User',
+        entityId: id,
+        details: {
+          email: user.email,
+          roles: user.roles.map((r) => r.role.name),
+        },
+      });
+    }
+
     return {
       message: 'Usuario dado de baja correctamente',
       deleteUser,
     };
   }
 
-  async restore(id: string, currentUser?: UserAuthContext) {
+  async restore(
+    id: string,
+    currentUser?: UserAuthContext,
+    auditMeta?: AuditMetadata,
+  ) {
     this.hierarchyService.assertNotSelf(
       currentUser?.id,
       id,
@@ -369,6 +440,19 @@ export class UsersService {
         isActive: true,
       },
     });
+
+    if (auditMeta) {
+      await this.auditService.log({
+        context: auditMeta,
+        action: 'USER_RESTORED',
+        entity: 'User',
+        entityId: id,
+        details: {
+          email: user.email,
+          isActive: true,
+        },
+      });
+    }
 
     return {
       message: 'Usuario restaurado exitosamente',

@@ -107,7 +107,8 @@ export class RolesController {
   @HttpCode(HttpStatus.CREATED)
   @RequirePermissions(AppPermission.ROLES_MANAGE)
   @ApiOperation({
-    summary: 'Crea un nuevo rol validando la jerarquía matemática de prioridades',
+    summary:
+      'Crea un nuevo rol validando la jerarquía matemática de prioridades',
     description:
       'El rol nuevo no puede poseer una prioridad igual o superior a la del usuario que lo crea.',
   })
@@ -180,7 +181,8 @@ export class RolesController {
   })
   @ApiResponse({
     status: 400,
-    description: 'No se puede eliminar un rol protegido o con usuarios asociados',
+    description:
+      'No se puede eliminar un rol protegido o con usuarios asociados',
   })
   async deleteRole(
     @Param('id') id: string,
