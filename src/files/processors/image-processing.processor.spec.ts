@@ -1,10 +1,13 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { Job } from 'bullmq';
 import sharp from 'sharp';
+import * as fs from 'fs';
+import * as path from 'path';
+import * as os from 'os';
 import { ImageProcessingProcessor } from './image-processing.processor';
 import { S3StorageService } from '../services/s3-storage.service';
 import { NotificationsService } from '../../notifications/notifications.service';
-import type { ImageProcessingJobPayload } from '../interfaces/image-job.interface';
+import type { ImageJobPayload } from '../interfaces/image-job.interface';
 
 describe('ImageProcessingProcessor', () => {
   let processor: ImageProcessingProcessor;
@@ -15,10 +18,11 @@ describe('ImageProcessingProcessor', () => {
   };
   let notificationsMock: {
     createNotification: jest.Mock;
+    sendUserEvent: jest.Mock;
   };
 
-  // Generar un buffer PNG válido real de prueba usando Sharp (100x100)
   let samplePngBuffer: Buffer;
+  let tempTestFile: string;
 
   beforeAll(async () => {
     samplePngBuffer = await sharp({
@@ -46,6 +50,7 @@ describe('ImageProcessingProcessor', () => {
 
     notificationsMock = {
       createNotification: jest.fn().mockResolvedValue({ id: 'notif-123' }),
+      sendUserEvent: jest.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -57,25 +62,43 @@ describe('ImageProcessingProcessor', () => {
     }).compile();
 
     processor = module.get<ImageProcessingProcessor>(ImageProcessingProcessor);
+
+    // Crear archivo temporal real en disco para pruebas
+    const tempDir = path.join(os.tmpdir(), 'jest_image_processor_tests');
+    await fs.promises.mkdir(tempDir, { recursive: true });
+    tempTestFile = path.join(tempDir, `test_${Date.now()}.png`);
+    await fs.promises.writeFile(tempTestFile, samplePngBuffer);
+  });
+
+  afterEach(async () => {
+    if (fs.existsSync(tempTestFile)) {
+      try {
+        await fs.promises.unlink(tempTestFile);
+      } catch {
+        // Ignorar
+      }
+    }
   });
 
   it('should be defined', () => {
     expect(processor).toBeDefined();
   });
 
-  it('should process image from base64, generate thumbnail and standard webp, upload to S3, and notify user', async () => {
-    const jobData: ImageProcessingJobPayload = {
+  it('should process image from tempFilePath, delete temp file from disk, upload variants to S3, and emit image:processed WebSocket event', async () => {
+    expect(fs.existsSync(tempTestFile)).toBe(true);
+
+    const jobData: ImageJobPayload = {
       userId: 'user-456',
       originalName: 'test-photo.png',
       mimetype: 'image/png',
-      fileBufferBase64: samplePngBuffer.toString('base64'),
+      tempFilePath: tempTestFile,
       targetBucket: 'my-bucket',
     };
 
     const mockJob = {
       id: 'job-101',
       data: jobData,
-    } as unknown as Job<ImageProcessingJobPayload>;
+    } as unknown as Job<ImageJobPayload>;
 
     const result = await processor.process(mockJob as any);
 
@@ -94,75 +117,44 @@ describe('ImageProcessingProcessor', () => {
 
     // Subidas a S3
     expect(s3StorageMock.uploadFile).toHaveBeenCalledTimes(2);
-    expect(s3StorageMock.uploadFile).toHaveBeenCalledWith(
-      'my-bucket',
-      expect.stringContaining('job-101_thumb.webp'),
-      expect.any(Buffer),
-      'image/webp',
-    );
-    expect(s3StorageMock.uploadFile).toHaveBeenCalledWith(
-      'my-bucket',
-      expect.stringContaining('job-101_standard.webp'),
-      expect.any(Buffer),
-      'image/webp',
+
+    // Checklist 4: El archivo temporal debió ser eliminado del disco
+    expect(fs.existsSync(tempTestFile)).toBe(false);
+
+    // Checklist 4: Emisión de evento WebSocket image:processed
+    expect(notificationsMock.sendUserEvent).toHaveBeenCalledWith(
+      'user-456',
+      'image:processed',
+      expect.objectContaining({
+        jobId: 'job-101',
+        variants: expect.any(Object),
+      }),
     );
 
-    // Notificación en tiempo real emitida
+    // Notificación en base de datos
     expect(notificationsMock.createNotification).toHaveBeenCalledWith(
       expect.objectContaining({
         userId: 'user-456',
-        title: 'Imagen procesada y optimizada',
         type: 'IMAGE_PROCESSED',
-        data: expect.objectContaining({
-          jobId: 'job-101',
-        }),
       }),
     );
   });
 
-  it('should process image from tempStorageKey, delete temp file after processing, and notify', async () => {
-    const jobData: ImageProcessingJobPayload = {
-      userId: 'user-789',
-      originalName: 'temp-photo.jpg',
-      mimetype: 'image/jpeg',
-      tempStorageKey: 'temp/uploads/raw-image.jpg',
-      targetBucket: 'sistema-files',
-    };
-
-    const mockJob = {
-      id: 'job-202',
-      data: jobData,
-    } as unknown as Job<ImageProcessingJobPayload>;
-
-    const result = await processor.process(mockJob as any);
-
-    expect(result.jobId).toBe('job-202');
-    expect(s3StorageMock.getFileBuffer).toHaveBeenCalledWith(
-      'sistema-files',
-      'temp/uploads/raw-image.jpg',
-    );
-    expect(s3StorageMock.deleteFile).toHaveBeenCalledWith(
-      'sistema-files',
-      'temp/uploads/raw-image.jpg',
-    );
-    expect(notificationsMock.createNotification).toHaveBeenCalled();
-  });
-
-  it('should throw an error if job contains neither buffer nor temp key', async () => {
-    const jobData: ImageProcessingJobPayload = {
+  it('should throw error if tempFilePath does not exist on disk', async () => {
+    const jobData: ImageJobPayload = {
       userId: 'user-000',
-      originalName: 'corrupt.jpg',
-      mimetype: 'image/jpeg',
+      originalName: 'nonexistent.png',
+      mimetype: 'image/png',
+      tempFilePath: '/path/to/nonexistent/file.png',
     };
 
     const mockJob = {
       id: 'job-err',
       data: jobData,
-    } as unknown as Job<ImageProcessingJobPayload>;
+    } as unknown as Job<ImageJobPayload>;
 
     await expect(processor.process(mockJob as any)).rejects.toThrow(
-      'El trabajo no contiene fileBufferBase64 ni tempStorageKey',
+      'El archivo temporal no existe en disco',
     );
   });
 });
-

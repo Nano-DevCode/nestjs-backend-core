@@ -139,6 +139,26 @@ export class NotificationGateway
     );
   }
 
+  sendEventToUser(userId: string, event: string, payload: unknown): void {
+    if (!this.server) return;
+    const room = `user:${userId}`;
+
+    // 1. Emitir al namespace raíz ('/')
+    this.server.to(room).emit(event, payload);
+
+    // 2. Emitir también al namespace '/realtime/notifications'
+    try {
+      const notifNamespace = this.server.of('/realtime/notifications');
+      notifNamespace.to(room).emit(event, payload);
+    } catch {
+      // Ignorar si el sub-namespace no tiene clientes activos
+    }
+
+    this.logger.log(
+      `[NotificationsGateway] Evento WebSocket '${event}' emitido a ${room}`,
+    );
+  }
+
   /**
    * Emite el evento WebSocket global 'feature-flag:updated' a todos los clientes y namespaces
    */

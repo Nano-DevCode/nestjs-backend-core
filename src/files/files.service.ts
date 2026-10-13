@@ -3,6 +3,9 @@ import { Injectable, BadRequestException, Logger, Optional } from '@nestjs/commo
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { v4 as uuidv4 } from 'uuid';
+import * as fs from 'fs';
+import * as path from 'path';
+import * as os from 'os';
 import {
   MAX_FILE_SIZE,
   DEFAULT_BUCKET,
@@ -21,7 +24,7 @@ import type {
   UploadResult,
 } from './interfaces/files.interface';
 import type {
-  ImageProcessingJobPayload,
+  ImageJobPayload,
   ImageDimensionsConfig,
 } from './interfaces/image-job.interface';
 
@@ -219,11 +222,19 @@ export class FilesService {
       );
     }
 
-    const payload: ImageProcessingJobPayload = {
+    // 1. Escribir archivo temporal en disco para evitar almacenar binarios pesados en la RAM de Redis
+    const tempDir = path.join(os.tmpdir(), 'sistema_image_uploads');
+    await fs.promises.mkdir(tempDir, { recursive: true });
+    const safeName = file.originalname.replace(/[^a-zA-Z0-9_.-]/g, '_');
+    const tempFilePath = path.join(tempDir, `${uuidv4()}_${safeName}`);
+    await fs.promises.writeFile(tempFilePath, file.buffer);
+
+    // 2. Contrato de Job ligero: solo se transmiten strings y configuraciones a Redis
+    const payload: ImageJobPayload = {
       userId,
       originalName: file.originalname,
       mimetype: file.mimetype,
-      fileBufferBase64: file.buffer.toString('base64'),
+      tempFilePath,
       targetBucket: bucket || DEFAULT_BUCKET,
       dimensions,
       metadata,
@@ -241,7 +252,7 @@ export class FilesService {
     });
 
     this.logger.log(
-      `[FilesService] Imagen encolada exitosamente en BullMQ: ID trabajo ${job.id} (${file.originalname}) para usuario ${userId}`,
+      `[FilesService] Imagen encolada exitosamente en BullMQ: ID trabajo ${job.id} (${file.originalname}) para usuario ${userId} [tempFilePath: ${tempFilePath}]`,
     );
 
     return {

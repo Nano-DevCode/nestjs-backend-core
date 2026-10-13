@@ -85,6 +85,14 @@ export class NotificationsService {
     return notification;
   }
 
+  sendUserEvent(userId: string, event: string, payload: unknown): void {
+    this.notificationGateway.sendEventToUser(userId, event, payload);
+    this.sseSubject.next({
+      userId,
+      data: { event, payload },
+    });
+  }
+
   async getUserNotifications(userId: string, query: NotificationQueryDto) {
     const { page = 1, limit = 20, isRead, unreadOnly } = query;
     const skip = (page - 1) * limit;

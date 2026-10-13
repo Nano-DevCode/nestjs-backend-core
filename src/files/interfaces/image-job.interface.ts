@@ -5,23 +5,28 @@ export interface ImageDimensionsConfig {
   fit?: 'cover' | 'contain' | 'fill' | 'inside' | 'outside';
 }
 
-export interface ImageProcessingJobPayload {
+/**
+ * Contrato de Job para BullMQ (ImageJobPayload).
+ * Pasa exclusivamente la ruta temporal del archivo en disco (`tempFilePath`)
+ * para evitar almacenar pesados payloads binarios o base64 en la memoria RAM de Redis.
+ */
+export interface ImageJobPayload {
   userId: string;
   originalName: string;
   mimetype: string;
-  /**
-   * Buffer codificado en base64 para transferencia serializada en Redis,
-   * o clave temporal en S3 si el archivo original fue almacenado preliminarmente.
-   */
-  fileBufferBase64?: string;
-  tempStorageKey?: string;
+  tempFilePath: string; // Ruta temporal en disco (previene saturación de Redis)
   targetBucket?: string;
   dimensions?: {
     thumbnail?: ImageDimensionsConfig;
     standard?: ImageDimensionsConfig;
   };
   metadata?: Record<string, unknown>;
+  fileBufferBase64?: string;
+  tempStorageKey?: string;
 }
+
+// Alias para compatibilidad
+export type ImageProcessingJobPayload = ImageJobPayload;
 
 export interface ImageVariantResult {
   key: string;
@@ -45,4 +50,3 @@ export interface ImageProcessingResult {
   compressionRatioPercent: number;
   processedAt: string;
 }
-

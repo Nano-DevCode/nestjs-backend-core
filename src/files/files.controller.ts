@@ -13,6 +13,8 @@ import {
   UseGuards,
   BadRequestException,
   Res,
+  HttpCode,
+  HttpStatus,
 } from '@nestjs/common';
 import type { Response } from 'express';
 import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
@@ -104,6 +106,7 @@ export class FilesController {
   }
 
   @Post('process-image')
+  @HttpCode(HttpStatus.ACCEPTED)
   @RequirePermissions('files.upload')
   @Roles('admin', 'user')
   @Throttle({ default: { limit: 15, ttl: 60000 } })

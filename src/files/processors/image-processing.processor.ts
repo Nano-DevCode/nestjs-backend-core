@@ -2,12 +2,13 @@ import { Logger } from '@nestjs/common';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job } from 'bullmq';
 import sharp from 'sharp';
+import * as fs from 'fs';
 import { v4 as uuidv4 } from 'uuid';
 import { IMAGE_PROCESSING_QUEUE, DEFAULT_BUCKET } from '../files.constants';
 import { S3StorageService } from '../services/s3-storage.service';
 import { NotificationsService } from '../../notifications/notifications.service';
 import type {
-  ImageProcessingJobPayload,
+  ImageJobPayload,
   ImageProcessingResult,
   ImageVariantResult,
 } from '../interfaces/image-job.interface';
@@ -24,11 +25,12 @@ export class ImageProcessingProcessor extends WorkerHost {
   }
 
   async process(
-    job: Job<ImageProcessingJobPayload, ImageProcessingResult>,
+    job: Job<ImageJobPayload, ImageProcessingResult>,
   ): Promise<ImageProcessingResult> {
     const {
       userId,
       originalName,
+      tempFilePath,
       fileBufferBase64,
       tempStorageKey,
       targetBucket = DEFAULT_BUCKET,
@@ -40,22 +42,37 @@ export class ImageProcessingProcessor extends WorkerHost {
     );
 
     try {
-      // 1. Obtener buffer original (desde base64 o desde clave temporal en S3)
-      let inputBuffer: Buffer;
-      if (fileBufferBase64) {
-        inputBuffer = Buffer.from(fileBufferBase64, 'base64');
+      // 1. Obtener buffer o ruta de entrada
+      // Prioridad 1: tempFilePath en disco (recomendado para no saturar Redis con binarios)
+      // Prioridad 2: fileBufferBase64 o tempStorageKey (compatibilidad hacia atrás)
+      let inputSource: string | Buffer;
+      let originalSizeBytes = 0;
+
+      if (tempFilePath) {
+        if (!fs.existsSync(tempFilePath)) {
+          throw new Error(
+            `El archivo temporal no existe en disco: ${tempFilePath}`,
+          );
+        }
+        const stat = await fs.promises.stat(tempFilePath);
+        originalSizeBytes = stat.size;
+        inputSource = tempFilePath; // Sharp puede leer directamente la ruta de disco optimizando memoria
+      } else if (fileBufferBase64) {
+        const buf = Buffer.from(fileBufferBase64, 'base64');
+        originalSizeBytes = buf.length;
+        inputSource = buf;
       } else if (tempStorageKey) {
-        inputBuffer = await this.s3StorageService.getFileBuffer(
+        const buf = await this.s3StorageService.getFileBuffer(
           targetBucket,
           tempStorageKey,
         );
+        originalSizeBytes = buf.length;
+        inputSource = buf;
       } else {
         throw new Error(
-          'El trabajo no contiene fileBufferBase64 ni tempStorageKey',
+          'El trabajo no contiene tempFilePath, fileBufferBase64 ni tempStorageKey',
         );
       }
-
-      const originalSizeBytes = inputBuffer.length;
 
       // 2. Parámetros para Thumbnail (Miniatura WebP)
       const thumbWidth = dimensions?.thumbnail?.width || 200;
@@ -63,7 +80,7 @@ export class ImageProcessingProcessor extends WorkerHost {
       const thumbFit = dimensions?.thumbnail?.fit || 'cover';
       const thumbQuality = dimensions?.thumbnail?.quality || 80;
 
-      const thumbBuffer = await sharp(inputBuffer)
+      const thumbBuffer = await sharp(inputSource)
         .resize({
           width: thumbWidth,
           height: thumbHeight,
@@ -79,7 +96,7 @@ export class ImageProcessingProcessor extends WorkerHost {
       const stdMaxHeight = dimensions?.standard?.height || 1280;
       const stdQuality = dimensions?.standard?.quality || 85;
 
-      const standardBuffer = await sharp(inputBuffer)
+      const standardBuffer = await sharp(inputSource)
         .resize({
           width: stdMaxWidth,
           height: stdMaxHeight,
@@ -111,13 +128,26 @@ export class ImageProcessingProcessor extends WorkerHost {
         ),
       ]);
 
-      // 5. Limpieza de archivo temporal si aplicaba
+      // 5. Limpieza del archivo temporal en disco y/o storage (Checklist 4)
+      if (tempFilePath && fs.existsSync(tempFilePath)) {
+        try {
+          await fs.promises.unlink(tempFilePath);
+          this.logger.log(
+            `[ImageProcessingProcessor] Archivo temporal eliminado de disco: ${tempFilePath}`,
+          );
+        } catch (unlinkErr) {
+          this.logger.warn(
+            `No se pudo eliminar el archivo temporal de disco ${tempFilePath}: ${(unlinkErr as Error).message}`,
+          );
+        }
+      }
+
       if (tempStorageKey) {
         try {
           await this.s3StorageService.deleteFile(targetBucket, tempStorageKey);
         } catch (cleanupError) {
           this.logger.warn(
-            `No se pudo eliminar el archivo temporal ${tempStorageKey}: ${(cleanupError as Error).message}`,
+            `No se pudo eliminar el archivo temporal en S3 ${tempStorageKey}: ${(cleanupError as Error).message}`,
           );
         }
       }
@@ -172,7 +202,14 @@ export class ImageProcessingProcessor extends WorkerHost {
           `Thumbnail: ${thumbBuffer.length} bytes`,
       );
 
-      // 7. Despachar notificación en tiempo real vía WebSocket / SSE / DB
+      // 7. Emitir evento WebSocket específico 'image:processed' (Checklist 4)
+      this.notificationsService.sendUserEvent(
+        userId,
+        'image:processed',
+        result,
+      );
+
+      // 8. Crear notificación persistente en base de datos
       await this.notificationsService.createNotification({
         userId,
         title: 'Imagen procesada y optimizada',
@@ -182,7 +219,7 @@ export class ImageProcessingProcessor extends WorkerHost {
       });
 
       this.logger.log(
-        `[ImageProcessingProcessor] Notificación en tiempo real emitida al usuario: ${userId}`,
+        `[ImageProcessingProcessor] Notificación WebSocket y DB emitida al usuario: ${userId}`,
       );
 
       return result;
@@ -195,4 +232,3 @@ export class ImageProcessingProcessor extends WorkerHost {
     }
   }
 }
-
