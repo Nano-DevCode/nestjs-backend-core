@@ -4,13 +4,15 @@ import { MailService } from './mail.service';
 import { MailProcessor } from './mail.processor';
 import { MAIL_QUEUE } from './mail.constants';
 
+const isWorkerDisabled = process.env.DISABLE_WORKERS === 'true';
+
 @Module({
   imports: [
     BullModule.registerQueue({
       name: MAIL_QUEUE,
     }),
   ],
-  providers: [MailService, MailProcessor],
+  providers: [MailService, ...(isWorkerDisabled ? [] : [MailProcessor])],
   exports: [MailService, BullModule],
 })
 export class MailModule {}

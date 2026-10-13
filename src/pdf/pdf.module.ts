@@ -7,6 +7,8 @@ import { PdfController } from './controllers/pdf.controller';
 import { FilesModule } from '../files/files.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 
+const isWorkerDisabled = process.env.DISABLE_WORKERS === 'true';
+
 @Module({
   imports: [
     BullModule.registerQueue({
@@ -16,7 +18,10 @@ import { NotificationsModule } from '../notifications/notifications.module';
     NotificationsModule,
   ],
   controllers: [PdfController],
-  providers: [PdfGeneratorService, PdfGeneratorProcessor],
+  providers: [
+    PdfGeneratorService,
+    ...(isWorkerDisabled ? [] : [PdfGeneratorProcessor]),
+  ],
   exports: [PdfGeneratorService, BullModule],
 })
 export class PdfModule {}

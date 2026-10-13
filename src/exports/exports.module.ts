@@ -10,6 +10,8 @@ import { NotificationsModule } from '../notifications/notifications.module';
 import { PrismaModule } from '../prisma/prisma.module';
 import { AuthModule } from '../auth/auth.module';
 
+const isWorkerDisabled = process.env.DISABLE_WORKERS === 'true';
+
 @Module({
   imports: [
     PrismaModule,
@@ -22,7 +24,7 @@ import { AuthModule } from '../auth/auth.module';
     }),
   ],
   controllers: [ExportsController],
-  providers: [ExportsService, ExportsProcessor],
+  providers: [ExportsService, ...(isWorkerDisabled ? [] : [ExportsProcessor])],
   exports: [ExportsService, BullModule],
 })
 export class ExportsModule {}

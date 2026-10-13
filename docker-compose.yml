@@ -219,8 +219,81 @@ services:
       - LAVALINK_SECURE=${LAVALINK_SECURE:-false}
       - SPOTIFY_CLIENT_ID=${SPOTIFY_CLIENT_ID:-}
       - SPOTIFY_CLIENT_SECRET=${SPOTIFY_CLIENT_SECRET:-}
+      - PROCESS_TYPE=api
+      - DISABLE_WORKERS=true
+      - SYSTEM_ACTIVATION_KEY=${SYSTEM_ACTIVATION_KEY:-nano-core-license-key-2026-auth-valid-9f82c1}
     volumes:
       - ./scripts:/app/scripts:ro
+    deploy:
+      resources:
+        limits:
+          cpus: '1.5'
+          memory: 1024M
+    networks:
+      - sistema_network
+    logging: *default-logging
+
+  # ----------------------------------------------------------------------------
+  # 5.1 Nodo de Procesamiento Asíncrono en Segundo Plano (sistema_workers)
+  # Aísla completamente el consumo de CPU y memoria (PDFs, Imágenes, Mails, Webhooks)
+  # de la API principal, evitando bloqueos del Event Loop HTTP y picos de latencia.
+  # ----------------------------------------------------------------------------
+  workers:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: sistema_workers
+    command: ["node", "dist/src/worker.js"]
+    restart: unless-stopped
+    depends_on:
+      postgres-db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      seaweedfs:
+        condition: service_started
+    environment:
+      - NODE_ENV=production
+      - PROCESS_TYPE=worker
+      - DISABLE_WORKERS=false
+      - SYSTEM_ACTIVATION_KEY=${SYSTEM_ACTIVATION_KEY:-nano-core-license-key-2026-auth-valid-9f82c1}
+      - DB_USER=${DB_USER:-postgres}
+      - DB_PASSWORD=${DB_PASSWORD:-MySecretPassword123}
+      - DB_NAME=${DB_NAME:-sistema_db}
+      - DB_PORT=${DB_PORT:-5432}
+      - DB_POOL_MAX=${DB_POOL_MAX:-25}
+      - DB_POOL_MIN=${DB_POOL_MIN:-5}
+      - DB_POOL_TIMEOUT_MS=${DB_POOL_TIMEOUT_MS:-5000}
+      - DATABASE_URL=postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-MySecretPassword123}@postgres-db:5432/${DB_NAME:-sistema_db}?schema=public
+      - DATABASE_REPLICA_URL=${DATABASE_REPLICA_URL:-}
+      - APP_NAME=${APP_NAME:-Sistema Core}
+      - APP_URL=${APP_URL:-https://sistema.nano-service.com}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-MyRedisSecretPassword123}
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET:-super_refresh_jwt_key}
+      - TWO_FACTOR_ENCRYPTION_KEY=${TWO_FACTOR_ENCRYPTION_KEY}
+      - S3_ENDPOINT=http://seaweedfs:8333
+      - S3_REGION=${S3_REGION:-us-east-1}
+      - S3_ACCESS_KEY=${S3_ACCESS_KEY:-tu_access_key}
+      - S3_SECRET_KEY=${S3_SECRET_KEY:-tu_secret_key}
+      - S3_BUCKET=${S3_BUCKET:-sistema-files}
+      - S3_FORCE_PATH_STYLE=true
+      - MAIL_DRIVER=${MAIL_DRIVER:-smtp}
+      - MAIL_FROM=${MAIL_FROM}
+      - MAIL_HOST=${MAIL_HOST}
+      - MAIL_PORT=${MAIL_PORT:-587}
+      - MAIL_SECURE=${MAIL_SECURE:-false}
+      - MAIL_USER=${MAIL_USER}
+      - MAIL_PASS=${MAIL_PASS}
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 1536M
+        reservations:
+          memory: 256M
     networks:
       - sistema_network
     logging: *default-logging

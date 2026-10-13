@@ -7,6 +7,8 @@ import { WebhooksService } from './webhooks.service';
 import { WebhooksProcessor } from './processors/webhooks.processor';
 import { WebhooksController } from './webhooks.controller';
 
+const isWorkerDisabled = process.env.DISABLE_WORKERS === 'true';
+
 @Module({
   imports: [
     RedisModule,
@@ -16,7 +18,7 @@ import { WebhooksController } from './webhooks.controller';
     }),
   ],
   controllers: [WebhooksController],
-  providers: [WebhooksService, WebhooksProcessor],
+  providers: [WebhooksService, ...(isWorkerDisabled ? [] : [WebhooksProcessor])],
   exports: [WebhooksService, BullModule],
 })
 export class WebhooksModule {}
