@@ -42,7 +42,8 @@ export class UsersController {
   @Get()
   @RequirePermissions(AppPermission.USERS_READ)
   @ApiOperation({
-    summary: 'Lista usuarios con paginación, filtros de rol y búsqueda por texto',
+    summary:
+      'Lista usuarios con paginación, filtros de rol y búsqueda por texto',
     description:
       'Retorna el directorio de usuarios con información de perfil y roles asignados.',
   })
@@ -146,7 +147,8 @@ export class UsersController {
   })
   @ApiResponse({
     status: 403,
-    description: 'No se puede eliminar a un usuario de jerarquía superior o igual',
+    description:
+      'No se puede eliminar a un usuario de jerarquía superior o igual',
   })
   async remove(
     @Param('id', ParseUUIDPipe) id: string,

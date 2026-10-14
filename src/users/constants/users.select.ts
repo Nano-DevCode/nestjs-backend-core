@@ -59,4 +59,3 @@ export const USER_DETAIL_SELECT = {
     },
   },
 } satisfies Prisma.UserSelect;
-
