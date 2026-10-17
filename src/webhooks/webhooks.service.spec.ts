@@ -85,6 +85,22 @@ describe('WebhooksService', () => {
       expect(sub.secret).toBe('mi-secreto-super-seguro-12345678');
       expect(sub.isActive).toBe(false);
     });
+
+    it('debe rechazar URLs internas o privadas para prevenir ataques SSRF', async () => {
+      await expect(
+        service.registerSubscription({
+          url: 'http://localhost:6379/internal',
+          events: ['*'],
+        }),
+      ).rejects.toThrow(/anti-SSRF/i);
+
+      await expect(
+        service.registerSubscription({
+          url: 'http://169.254.169.254/latest/meta-data/',
+          events: ['*'],
+        }),
+      ).rejects.toThrow(/anti-SSRF/i);
+    });
   });
 
   describe('listSubscriptions', () => {

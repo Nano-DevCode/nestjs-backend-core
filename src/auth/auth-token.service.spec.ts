@@ -1,4 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
+﻿import { Test, TestingModule } from '@nestjs/testing';
 import { JwtService } from '@nestjs/jwt';
 import { AuthTokenService, AUTH_COOKIE_OPTIONS } from './auth-token.service';
 import { SessionService } from './session.service';
@@ -51,7 +51,7 @@ describe('AuthTokenService', () => {
   });
 
   describe('createSessionAndCookies', () => {
-    it('debe almacenar sesión en Redis, configurar cookies HTTP-Only y retornar UserAuthResponse', async () => {
+    it('debe almacenar sesiÃ³n en Redis, configurar cookies HTTP-Only y retornar UserAuthResponse', async () => {
       const mockRes = {
         cookie: jest.fn(),
       } as unknown as Response;
@@ -73,13 +73,13 @@ describe('AuthTokenService', () => {
       expect(mockRes.cookie).toHaveBeenCalledWith(
         'refresh_token',
         expect.any(String),
-        expect.objectContaining({ httpOnly: true, path: '/api/auth' }),
+        expect.objectContaining({ httpOnly: true, path: '/' }),
       );
       expect(result.user.id).toBe(mockUser.id);
       expect(result.user.email).toBe(mockUser.email);
     });
 
-    it('no debe regenerar sesión si se suministra un existingTokenId', async () => {
+    it('no debe regenerar sesiÃ³n si se suministra un existingTokenId', async () => {
       const mockRes = {
         cookie: jest.fn(),
       } as unknown as Response;
@@ -92,7 +92,7 @@ describe('AuthTokenService', () => {
   });
 
   describe('createMobileTokens', () => {
-    it('debe generar tokens y guardar sesión sin depender de Express Cookies', async () => {
+    it('debe generar tokens y guardar sesiÃ³n sin depender de Express Cookies', async () => {
       const result = await service.createMobileTokens(mockUser);
 
       expect(sessionService.setSession).toHaveBeenCalledTimes(1);
@@ -103,7 +103,7 @@ describe('AuthTokenService', () => {
   });
 
   describe('clearAuthCookies', () => {
-    it('debe limpiar las cookies de autenticación en la respuesta Express', () => {
+    it('debe limpiar las cookies de autenticaciÃ³n en la respuesta Express', () => {
       const mockRes = {
         clearCookie: jest.fn(),
       } as unknown as Response;
@@ -123,7 +123,7 @@ describe('AuthTokenService', () => {
   });
 
   describe('AUTH_COOKIE_OPTIONS', () => {
-    it('debe retornar configuraciones de cookies correctas para desarrollo/producción', () => {
+    it('debe retornar configuraciones de cookies correctas para desarrollo/producciÃ³n', () => {
       const accessOpts = AUTH_COOKIE_OPTIONS.getAccessTokenOptions();
       const refreshOpts = AUTH_COOKIE_OPTIONS.getRefreshTokenOptions();
       const temp2FaOpts = AUTH_COOKIE_OPTIONS.getTemp2FaTokenOptions();
@@ -134,4 +134,5 @@ describe('AuthTokenService', () => {
     });
   });
 });
+
 

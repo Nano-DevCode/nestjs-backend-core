@@ -15,6 +15,7 @@ import type {
   WebhookSubscription,
 } from './webhooks.interfaces';
 import type { CreateWebhookSubscriptionDto } from './dto/create-webhook-subscription.dto';
+import { assertSafeWebhookUrl } from './utils/webhook-url-validator.util';
 
 @Injectable()
 export class WebhooksService {
@@ -31,9 +32,10 @@ export class WebhooksService {
   async registerSubscription(
     dto: CreateWebhookSubscriptionDto,
   ): Promise<WebhookSubscription> {
+    assertSafeWebhookUrl(dto.url);
+
     const id = crypto.randomUUID();
-    const secret =
-      dto.secret || crypto.randomBytes(32).toString('hex');
+    const secret = dto.secret || crypto.randomBytes(32).toString('hex');
 
     const subscription: WebhookSubscription = {
       id,
@@ -187,4 +189,3 @@ export class WebhooksService {
     };
   }
 }
-

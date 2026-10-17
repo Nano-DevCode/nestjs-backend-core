@@ -35,7 +35,8 @@ export class QueryAuditsDto {
   limit?: number = 20;
 
   @ApiPropertyOptional({
-    description: 'Filtrar por acción ejecutada (ej: USER_CREATED, ROLE_UPDATED)',
+    description:
+      'Filtrar por acción ejecutada (ej: USER_CREATED, ROLE_UPDATED)',
     example: 'USER_CREATED',
   })
   @IsOptional()
@@ -65,8 +66,7 @@ export class QueryAuditsDto {
   userId?: string;
 
   @ApiPropertyOptional({
-    description:
-      'Búsqueda por texto libre en acción, endpoint, IP o entidad',
+    description: 'Búsqueda por texto libre en acción, endpoint, IP o entidad',
   })
   @IsOptional()
   @IsString()

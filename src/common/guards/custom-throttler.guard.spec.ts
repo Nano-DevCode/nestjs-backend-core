@@ -64,4 +64,29 @@ describe('CustomThrottlerGuard', () => {
     const tracker = await (guard as any).getTracker(req);
     expect(tracker).toBe('ip:unknown');
   });
+
+  it('should force IP tracking on sensitive auth routes even if Bearer or X-Device-Id headers are spoofed', async () => {
+    const req = {
+      url: '/api/v1/auth/login',
+      ip: '203.0.113.99',
+      headers: {
+        authorization: 'Bearer fake.payload.spoofed_sig',
+        'x-device-id': 'spoofed-device-999',
+      },
+    };
+    const tracker = await (guard as any).getTracker(req);
+    expect(tracker).toBe('ip:203.0.113.99');
+  });
+
+  it('should bind X-Device-Id to client IP on non-auth routes', async () => {
+    const req = {
+      url: '/api/v1/mobile/config',
+      ip: '203.0.113.50',
+      headers: {
+        'x-device-id': 'dev-abc',
+      },
+    };
+    const tracker = await (guard as any).getTracker(req);
+    expect(tracker).toBe('ip:203.0.113.50:device:dev-abc');
+  });
 });

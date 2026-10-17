@@ -1,4 +1,4 @@
-import { Controller, Get, UseGuards } from '@nestjs/common';
+import { Controller, Get, UseGuards, VERSION_NEUTRAL } from '@nestjs/common';
 import { AppService } from './app.service';
 import { RequireFeature } from './features/decorators/require-feature.decorator';
 import { FeatureFlagGuard } from './features/guards/feature-flag.guard';
@@ -9,7 +9,7 @@ import {
 } from './common/scalar/scalar.decorators';
 
 @ApiTags('Root & Core Status')
-@Controller()
+@Controller({ version: ['1', VERSION_NEUTRAL] })
 export class AppController {
   constructor(private readonly appService: AppService) {}
 

@@ -19,7 +19,7 @@ export class AlertsController {
   constructor(private readonly alertsService: AlertsService) {}
 
   @Post('test')
-  @Roles('ADMIN')
+  @Roles('admin', 'superadmin')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Envía una alerta de prueba a los webhooks de monitoreo (Discord / Slack)' })
   @ApiResponse({ status: 200, description: 'Alerta procesada exitosamente' })

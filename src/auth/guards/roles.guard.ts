@@ -75,12 +75,19 @@ export class RolesGuard implements CanActivate {
       );
     }
 
+    const normalizedUserRoles = user.roles.map((r) => r.toLowerCase());
+
     // Rol superadmin o admin tiene acceso completo
-    if (user.roles.includes('superadmin') || user.roles.includes('admin')) {
+    if (
+      normalizedUserRoles.includes('superadmin') ||
+      normalizedUserRoles.includes('admin')
+    ) {
       return true;
     }
 
-    const hasRole = requiredRoles.some((role) => user.roles?.includes(role));
+    const hasRole = requiredRoles.some((role) =>
+      normalizedUserRoles.includes(role.toLowerCase()),
+    );
     if (hasRole) {
       return true;
     }

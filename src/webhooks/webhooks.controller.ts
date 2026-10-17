@@ -32,9 +32,12 @@ export class WebhooksController {
   constructor(private readonly webhooksService: WebhooksService) {}
 
   @Post('subscriptions')
-  @Roles('ADMIN')
+  @Roles('admin', 'superadmin')
   @ApiOperation({ summary: 'Crea una nueva suscripción a webhooks salientes' })
-  @ApiResponse({ status: 201, description: 'Suscripción registrada exitosamente' })
+  @ApiResponse({
+    status: 201,
+    description: 'Suscripción registrada exitosamente',
+  })
   async createSubscription(
     @Body() dto: CreateWebhookSubscriptionDto,
   ): Promise<WebhookSubscription> {
@@ -42,48 +45,68 @@ export class WebhooksController {
   }
 
   @Get('subscriptions')
-  @Roles('ADMIN')
+  @Roles('admin', 'superadmin')
   @ApiOperation({ summary: 'Obtiene todas las suscripciones de webhooks' })
   @ApiResponse({ status: 200, description: 'Lista de suscripciones obtenida' })
   async listSubscriptions(): Promise<WebhookSubscription[]> {
-    return this.webhooksService.listSubscriptions();
+    const subs = await this.webhooksService.listSubscriptions();
+    return subs.map((sub) =>
+      sub.secret
+        ? { ...sub, secret: `${sub.secret.slice(0, 4)}****************` }
+        : sub,
+    );
   }
 
   @Get('subscriptions/:id')
-  @Roles('ADMIN')
-  @ApiOperation({ summary: 'Obtiene el detalle de una suscripción de webhook por ID' })
+  @Roles('admin', 'superadmin')
+  @ApiOperation({
+    summary: 'Obtiene el detalle de una suscripción de webhook por ID',
+  })
   @ApiResponse({ status: 200, description: 'Detalle de la suscripción' })
   async getSubscription(@Param('id') id: string): Promise<WebhookSubscription> {
     const sub = await this.webhooksService.getSubscription(id);
     if (!sub) {
-      throw new NotFoundException(`Suscripción de webhook con ID ${id} no encontrada`);
+      throw new NotFoundException(
+        `Suscripción de webhook con ID ${id} no encontrada`,
+      );
     }
-    return sub;
+    return sub.secret
+      ? { ...sub, secret: `${sub.secret.slice(0, 4)}****************` }
+      : sub;
   }
 
   @Delete('subscriptions/:id')
-  @Roles('ADMIN')
+  @Roles('admin', 'superadmin')
   @ApiOperation({ summary: 'Elimina una suscripción de webhook por ID' })
-  @ApiResponse({ status: 200, description: 'Suscripción eliminada exitosamente' })
+  @ApiResponse({
+    status: 200,
+    description: 'Suscripción eliminada exitosamente',
+  })
   async deleteSubscription(
     @Param('id') id: string,
   ): Promise<{ success: boolean; message: string }> {
     const deleted = await this.webhooksService.deleteSubscription(id);
     if (!deleted) {
-      throw new NotFoundException(`Suscripción de webhook con ID ${id} no encontrada`);
+      throw new NotFoundException(
+        `Suscripción de webhook con ID ${id} no encontrada`,
+      );
     }
     return { success: true, message: 'Suscripción eliminada con éxito' };
   }
 
   @Post('dispatch-test')
-  @Roles('ADMIN')
+  @Roles('admin', 'superadmin')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Despacha un evento de prueba a los suscriptores de webhooks' })
-  @ApiResponse({ status: 200, description: 'Evento encolado en BullMQ para entrega asíncrona' })
+  @ApiOperation({
+    summary: 'Despacha un evento de prueba a los suscriptores de webhooks',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Evento encolado en BullMQ para entrega asíncrona',
+  })
   async dispatchTest(
     @Body() dto: DispatchWebhookTestDto,
   ): Promise<{ queuedCount: number; jobIds: string[] }> {
     return this.webhooksService.dispatch(dto.event, dto.data || { test: true });
   }
 }
-

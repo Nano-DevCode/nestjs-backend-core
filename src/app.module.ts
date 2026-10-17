@@ -33,6 +33,11 @@ import { RolesModule } from './roles/roles.module';
   imports: [
     ThrottlerModule.forRoot([
       {
+        name: 'default',
+        ttl: 60000, // 60 segundos (base para decoradores @Throttle({ default: ... }) por endpoint)
+        limit: Number(process.env.THROTTLE_LIMIT_LONG) || 2500,
+      },
+      {
         name: 'short',
         ttl: 1000, // 1 segundo
         limit: Number(process.env.THROTTLE_LIMIT_SHORT) || 120, // 120 req/s (ráfagas intensas sin falsos positivos)

@@ -1,5 +1,6 @@
 import { NestFactory } from '@nestjs/core';
-import { ValidationPipe, type LogLevel } from '@nestjs/common';
+import { ValidationPipe, VersioningType, type LogLevel } from '@nestjs/common';
+import * as crypto from 'crypto';
 import {
   DocumentBuilder,
   SwaggerModule as OpenApiModule,
@@ -22,6 +23,12 @@ interface HttpServerWithTimeout {
   headersTimeout: number;
 }
 
+function timingSafeCompareStrings(a: string, b: string): boolean {
+  const hashA = crypto.createHash('sha256').update(a).digest();
+  const hashB = crypto.createHash('sha256').update(b).digest();
+  return crypto.timingSafeEqual(hashA, hashB);
+}
+
 async function bootstrap() {
   // Candado de seguridad y validación de licencia antes de inicializar cualquier módulo o puerto
   enforceActivationGatekeeper();
@@ -42,10 +49,16 @@ async function bootstrap() {
   app.enableShutdownHooks();
 
   app.setGlobalPrefix('api', {
-    exclude: ['api/docs', '/api/docs/{*path}'],
+    exclude: ['api/docs', 'api/docs/(.*)', 'docs', 'docs/(.*)'],
   });
 
-  // 1. Basic Auth Middleware para proteger la ruta /api/docs
+  // Versionado global URI (/api/v1/...)
+  app.enableVersioning({
+    type: VersioningType.URI,
+    defaultVersion: '1',
+  });
+
+  // 1. Basic Auth Middleware para proteger la ruta /api/docs (comparación en tiempo constante)
   const docsUser = process.env.DOCS_USER || 'admin';
   const docsPass = process.env.DOCS_PASSWORD || 'secret123';
 
@@ -62,13 +75,20 @@ async function bootstrap() {
         .send('Se requieren credenciales para acceder a la documentacion.');
     }
 
-    const base64Credentials = authHeader.split(' ')[1];
+    const base64Credentials = authHeader.split(' ')[1] || '';
     const credentials = Buffer.from(base64Credentials, 'base64').toString(
       'utf-8',
     );
-    const [username, password] = credentials.split(':');
+    const separatorIndex = credentials.indexOf(':');
+    const username =
+      separatorIndex >= 0 ? credentials.slice(0, separatorIndex) : credentials;
+    const password =
+      separatorIndex >= 0 ? credentials.slice(separatorIndex + 1) : '';
 
-    if (username !== docsUser || password !== docsPass) {
+    const isValidUser = timingSafeCompareStrings(username, docsUser);
+    const isValidPass = timingSafeCompareStrings(password, docsPass);
+
+    if (!isValidUser || !isValidPass) {
       res.setHeader(
         'WWW-Authenticate',
         'Basic realm="Acceso Privado a Documentacion"',
@@ -168,8 +188,8 @@ async function bootstrap() {
       origin: string | undefined,
       callback: (err: Error | null, allow?: boolean) => void,
     ) => {
-      // 1. Permitir clientes nativos en Android/iOS o Postman (sin header Origin o 'null')
-      if (!origin || origin === 'null') {
+      // 1. Permitir clientes nativos en Android/iOS o Postman (sin header Origin; 'null' solo en desarrollo)
+      if (!origin || (!isProduction && origin === 'null')) {
         return callback(null, true);
       }
 
@@ -189,13 +209,15 @@ async function bootstrap() {
         return callback(null, true);
       }
 
-      // 4. Permitir localhost en cualquier puerto y redes privadas locales (LAN / Wi-Fi / Emuladores)
-      const isLocalOrPrivateNetwork =
-        /^https?:\/\/(localhost|127\.0\.0\.1|10\.\d{1,3}\.\d{1,3}\.\d{1,3}|192\.168\.\d{1,3}\.\d{1,3}|172\.(1[6-9]|2\d|3[0-1])\.\d{1,3}\.\d{1,3})(:\d+)?$/.test(
-          normalizedOrigin,
-        );
-      if (isLocalOrPrivateNetwork) {
-        return callback(null, true);
+      // 4. En desarrollo, permitir localhost en cualquier puerto y redes privadas locales (LAN / Wi-Fi / Emuladores)
+      if (!isProduction) {
+        const isLocalOrPrivateNetwork =
+          /^https?:\/\/(localhost|127\.0\.0\.1|10\.\d{1,3}\.\d{1,3}\.\d{1,3}|192\.168\.\d{1,3}\.\d{1,3}|172\.(1[6-9]|2\d|3[0-1])\.\d{1,3}\.\d{1,3})(:\d+)?$/.test(
+            normalizedOrigin,
+          );
+        if (isLocalOrPrivateNetwork) {
+          return callback(null, true);
+        }
       }
 
       // 5. Rechazar orígenes no autorizados
@@ -241,6 +263,8 @@ async function bootstrap() {
       'Documentación de referencia OpenAPI 3.1 para la plataforma empresarial NestJS: Autenticación Dual (Web Cookies & Mobile RTR), TOTP 2FA, RBAC jerárquico, Almacenamiento S3 con ClamAV, BullMQ y WebSocket Gateway.',
     )
     .setVersion('1.0.0')
+    .addServer('/api/v1', 'API v1 (Entorno Principal)')
+    .addServer('/', 'Servidor Raíz')
     .addBearerAuth(
       {
         type: 'http',
@@ -356,7 +380,22 @@ async function bootstrap() {
 
   const openApiSpec = OpenApiModule.createDocument(app, scalarConfig);
 
-  // 4. Montar Scalar API Reference
+  // 4. Endpoints auxiliares para la especificación OpenAPI en JSON (Swagger / Postman / Insomnia)
+  app.use('/api/docs/openapi.json', (req: Request, res: Response) => {
+    res.setHeader('Content-Type', 'application/json');
+    res.send(openApiSpec);
+  });
+  app.use('/api/docs-json', (req: Request, res: Response) => {
+    res.setHeader('Content-Type', 'application/json');
+    res.send(openApiSpec);
+  });
+
+  // Redirección amigable de /docs a /api/docs
+  app.use('/docs', (req: Request, res: Response) => {
+    res.redirect(301, '/api/docs');
+  });
+
+  // 5. Montar Scalar API Reference exclusivamente en /api/docs
   app.use(
     '/api/docs',
     apiReference({

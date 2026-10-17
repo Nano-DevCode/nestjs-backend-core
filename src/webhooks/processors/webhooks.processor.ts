@@ -4,15 +4,21 @@ import { Job } from 'bullmq';
 import * as crypto from 'crypto';
 import { WEBHOOKS_QUEUE } from '../webhooks.constants';
 import type { WebhookJobData } from '../webhooks.interfaces';
+import { assertSafeWebhookUrl } from '../utils/webhook-url-validator.util';
 
 @Processor(WEBHOOKS_QUEUE)
 export class WebhooksProcessor extends WorkerHost {
   private readonly logger = new Logger(WebhooksProcessor.name);
 
   async process(
-    job: Job<WebhookJobData, { statusCode: number; durationMs: number }, string>,
+    job: Job<
+      WebhookJobData,
+      { statusCode: number; durationMs: number },
+      string
+    >,
   ): Promise<{ statusCode: number; durationMs: number }> {
     const { targetUrl, secret, event, deliveryId, payload } = job.data;
+    assertSafeWebhookUrl(targetUrl);
     const bodyJson = JSON.stringify(payload);
 
     // Firma HMAC-SHA256 estándar de la industria
@@ -60,7 +66,6 @@ export class WebhooksProcessor extends WorkerHost {
         durationMs,
       };
     } catch (error) {
-      const durationMs = Date.now() - startTime;
       this.logger.error(
         `[WebhooksProcessor] Error al entregar webhook a ${targetUrl} (Intento ${job.attemptsMade + 1}): ${(error as Error).message}`,
       );
@@ -69,4 +74,3 @@ export class WebhooksProcessor extends WorkerHost {
     }
   }
 }
-

@@ -12,7 +12,7 @@ import {
 import type { ApiKeyRecord } from '../interfaces/api-key.interface';
 
 @ApiTags('External Integrations (Partners)')
-@Controller('v1/external')
+@Controller('external')
 @UseGuards(ApiKeyAuthGuard)
 export class ExternalController {
   @Get('status')

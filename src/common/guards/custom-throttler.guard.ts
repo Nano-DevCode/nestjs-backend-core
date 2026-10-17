@@ -3,6 +3,8 @@ import { ThrottlerGuard } from '@nestjs/throttler';
 
 interface TrackableRequest {
   user?: { id?: string };
+  url?: string;
+  originalUrl?: string;
   headers?: Record<string, string | string[] | undefined>;
   ip?: string;
   socket?: { remoteAddress?: string };
@@ -21,10 +23,26 @@ export class CustomThrottlerGuard extends ThrottlerGuard {
   protected override getTracker(req: Record<string, any>): Promise<string> {
     const request = req as TrackableRequest;
 
-    // 1. Si el usuario está autenticado, rastrear por ID único
-    // Previene que múltiples usuarios bajo CGNAT móvil o Wi-Fi institucional compartan el mismo cupo
+    const forwarded = request.headers?.['x-forwarded-for'];
+    const clientIp =
+      typeof forwarded === 'string'
+        ? forwarded.split(',')[0].trim()
+        : request.ip || request.socket?.remoteAddress || 'unknown';
+
+    // 1. Si el usuario ya fue autenticado por un Guard previo, rastrear por ID único
     if (request.user?.id) {
       return Promise.resolve(`user:${request.user.id}`);
+    }
+
+    // En endpoints públicos sensibles (login, registro, 2FA, verificación), forzar siempre
+    // el rastreo por IP para impedir evasión de fuerza bruta rotando cabeceras Bearer o X-Device-Id
+    const targetUrl = request.originalUrl || request.url || '';
+    const isSensitiveAuthRoute =
+      /\/auth\/(login|register|mobile\/login|resend-verification|verify-email|2fa)/i.test(
+        targetUrl,
+      );
+    if (isSensitiveAuthRoute) {
+      return Promise.resolve(`ip:${clientIp}`);
     }
 
     // 2. Si la petición incluye cabecera Bearer antes de resolverse el guard de auth
@@ -48,20 +66,17 @@ export class CustomThrottlerGuard extends ThrottlerGuard {
       }
     }
 
-    // 4. Si el cliente móvil incluye cabecera de dispositivo única
+    // 4. Si el cliente móvil incluye cabecera de dispositivo, vincularla con la IP
+    // para distinguir dispositivos bajo la misma red CGNAT sin permitir evasión desde una misma IP
     const deviceId =
       request.headers?.['x-device-id'] || request.headers?.['X-Device-Id'];
     if (typeof deviceId === 'string' && deviceId.trim().length > 0) {
-      return Promise.resolve(`device:${deviceId.trim()}`);
+      return Promise.resolve(
+        `ip:${clientIp}:device:${deviceId.trim().slice(0, 64)}`,
+      );
     }
 
     // 5. Fallback a IP del cliente para peticiones públicas o anónimas
-    const forwarded = request.headers?.['x-forwarded-for'];
-    const clientIp =
-      typeof forwarded === 'string'
-        ? forwarded.split(',')[0].trim()
-        : request.ip || request.socket?.remoteAddress || 'unknown';
-
     return Promise.resolve(`ip:${clientIp}`);
   }
 }

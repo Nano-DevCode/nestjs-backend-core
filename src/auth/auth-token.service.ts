@@ -14,7 +14,7 @@ export const AUTH_COOKIE_OPTIONS = {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
-      maxAge: 15 * 60 * 1000, // 15 minutos
+      maxAge: 2 * 60 * 60 * 1000, // 2 horas
       path: '/',
     };
   },
@@ -23,8 +23,8 @@ export const AUTH_COOKIE_OPTIONS = {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 días
-      path: '/api/auth', // Permite enviar la cookie con prefijo global 'api' a /api/auth/refresh y /api/auth/logout
+      maxAge: 30 * 24 * 60 * 60 * 1000, // 7 dÃ­as
+      path: '/', // Permite enviar la cookie a /api/v1/auth/refresh y /api/v1/auth/logout
     };
   },
   getTemp2FaTokenOptions(): CookieOptions {
@@ -64,19 +64,19 @@ export class AuthTokenService {
     if (process.env.NODE_ENV === 'production') {
       if (!jwtSecret || jwtSecret.length < 32) {
         throw new Error(
-          'FATAL: JWT_SECRET debe estar configurado y tener al menos 32 caracteres en producción.',
+          'FATAL: JWT_SECRET debe estar configurado y tener al menos 32 caracteres en producciÃ³n.',
         );
       }
       if (!refreshSecret || refreshSecret.length < 32) {
         throw new Error(
-          'FATAL: JWT_REFRESH_SECRET debe estar configurado y tener al menos 32 caracteres en producción.',
+          'FATAL: JWT_REFRESH_SECRET debe estar configurado y tener al menos 32 caracteres en producciÃ³n.',
         );
       }
     }
 
     const accessToken = this.jwtService.sign(payload, {
       secret: jwtSecret || 'super_secret_jwt_key',
-      expiresIn: '15m',
+      expiresIn: '2h',
       algorithm: 'HS256',
     });
 
@@ -84,7 +84,7 @@ export class AuthTokenService {
       { sub: user.id, tokenId },
       {
         secret: refreshSecret || 'super_refresh_jwt_key',
-        expiresIn: '7d',
+        expiresIn: '30d',
         algorithm: 'HS256',
       },
     );
@@ -183,3 +183,4 @@ export class AuthTokenService {
     );
   }
 }
+
