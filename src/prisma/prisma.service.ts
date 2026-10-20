@@ -4,13 +4,16 @@ import {
   OnModuleInit,
   OnModuleDestroy,
   Logger,
+  Optional,
 } from '@nestjs/common';
 import { Pool } from 'pg';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { readReplicas } from '@prisma/extension-read-replicas';
 import { Prisma, PrismaClient } from '../../prisma/generated/prisma/client';
+import { MongoService } from './mongo.service';
 
 export { Prisma, PrismaClient } from '../../prisma/generated/prisma/client';
+export { MongoService, resolveMongoConfig } from './mongo.service';
 
 interface HasReplicaMethod {
   $replica: () => unknown;
@@ -64,6 +67,8 @@ export class PrismaService
   public readonly pool: Pool;
   public readonly replicaPool?: Pool;
   public readonly hasReplica: boolean;
+  public readonly mongo: MongoService;
+  public readonly hasMongo: boolean;
 
   get readOnly(): this {
     if (this.hasReplica && isReplicaCapable(this)) {
@@ -72,7 +77,7 @@ export class PrismaService
     return this;
   }
 
-  constructor() {
+  constructor(@Optional() mongoService?: MongoService) {
     let dbPassword = process.env['DB_PASSWORD'];
     const connectionString =
       process.env['DATABASE_URL'] ||
@@ -148,6 +153,10 @@ export class PrismaService
 
     this.hasReplica = hasReplica;
 
+    const resolvedMongo = mongoService ?? new MongoService();
+    this.mongo = resolvedMongo;
+    this.hasMongo = resolvedMongo.isEnabled;
+
     let extended = this.$extends(createSoftDeleteExtension());
 
     if (hasReplica && replicaClient) {
@@ -162,6 +171,9 @@ export class PrismaService
       extended as unknown as { onModuleInit: () => Promise<void> }
     ).onModuleInit = async () => {
       await (extended as unknown as PrismaClient).$connect();
+      if (!mongoService && resolvedMongo.isEnabled) {
+        await resolvedMongo.onModuleInit();
+      }
     };
 
     (
@@ -172,6 +184,9 @@ export class PrismaService
       if (replicaPool) {
         await replicaPool.end();
       }
+      if (!mongoService && resolvedMongo.isEnabled) {
+        await resolvedMongo.onModuleDestroy();
+      }
     };
 
     (extended as unknown as { pool: Pool }).pool = this.pool;
@@ -179,6 +194,9 @@ export class PrismaService
       (extended as unknown as { replicaPool: Pool }).replicaPool = replicaPool;
     }
     (extended as unknown as { hasReplica: boolean }).hasReplica = hasReplica;
+    (extended as unknown as { mongo: MongoService }).mongo = resolvedMongo;
+    (extended as unknown as { hasMongo: boolean }).hasMongo =
+      resolvedMongo.isEnabled;
 
     Object.defineProperty(extended, 'readOnly', {
       get() {
