@@ -19,13 +19,36 @@ interface WsAuthenticatedUser {
   roles?: string[];
 }
 
+function isAllowedWsOrigin(origin: string | undefined): boolean {
+  if (!origin) return true;
+  const isProd = process.env.NODE_ENV === 'production';
+  const allowedList = (process.env.FRONTEND_URL || '')
+    .split(',')
+    .map((u) => u.trim().replace(/\/$/, ''))
+    .filter(Boolean);
+
+  const normalized = origin.replace(/\/$/, '');
+  if (allowedList.includes(normalized)) return true;
+  if (/^https:\/\/([a-zA-Z0-9-]+\.)*nano-service\.com$/.test(normalized)) {
+    return true;
+  }
+  if (!isProd && /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(normalized)) {
+    return true;
+  }
+  return false;
+}
+
 @WebSocketGateway({
   cors: {
     origin: (
-      _origin: string | undefined,
+      origin: string | undefined,
       callback: (err: Error | null, allow?: boolean) => void,
     ) => {
-      callback(null, true);
+      if (isAllowedWsOrigin(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error('Origen WebSocket no permitido por CORS'));
+      }
     },
     credentials: true,
   },
@@ -81,7 +104,10 @@ export class DiscordBotWsGateway
       if (parts.length !== 3) return null;
 
       const [headerB64, payloadB64, signatureB64] = parts;
-      const secret = process.env.JWT_SECRET || 'super_secret_jwt_key';
+      const secret =
+        process.env.JWT_SECRET ||
+        (process.env.NODE_ENV === 'production' ? '' : 'super_secret_jwt_key');
+      if (!secret) return null;
       const expectedSig = crypto
         .createHmac('sha256', secret)
         .update(`${headerB64}.${payloadB64}`)
@@ -166,7 +192,22 @@ export class DiscordBotWsGateway
       (client.data as { user?: WsAuthenticatedUser } | undefined)?.user ||
       this.extractAndVerifyJwt(client);
 
-    if (this.guildService && wsUser) {
+    if (this.guildService) {
+      if (!wsUser) {
+        this.logger.warn(
+          `[DiscordBotWsGateway] Acceso denegado (401) a sala guild [${guildId}] para socket no autenticado [${client.id}]`,
+        );
+        client.emit?.('discord:error', {
+          statusCode: 401,
+          message: 'Autenticación requerida para suscribirse al servidor de Discord',
+        });
+        return {
+          event: 'error',
+          statusCode: 401,
+          message: 'Autenticación requerida para suscribirse al servidor de Discord',
+        };
+      }
+
       const hasAccess = await this.guildService.hasGuildAccess(
         wsUser.id,
         guildId,

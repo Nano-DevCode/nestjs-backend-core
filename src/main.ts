@@ -54,7 +54,7 @@ async function bootstrap() {
   app.enableShutdownHooks();
 
   app.setGlobalPrefix('api', {
-    exclude: ['api/docs', 'api/docs/(.*)', 'docs', 'docs/(.*)'],
+    exclude: ['api/docs', 'api/docs/{*path}', 'docs', 'docs/{*path}'],
   });
 
   // Versionado global URI (/api/v1/... y retrocompatible con /api/...)
@@ -63,11 +63,26 @@ async function bootstrap() {
     defaultVersion: [VERSION_NEUTRAL, '1'],
   });
 
-  // 1. Basic Auth Middleware para proteger la ruta /api/docs (comparación en tiempo constante)
+  // 1. Basic Auth Middleware para proteger /api/docs y /api/docs-json (comparación en tiempo constante)
   const docsUser = process.env.DOCS_USER || 'admin';
   const docsPass = process.env.DOCS_PASSWORD || 'secret123';
 
-  app.use('/api/docs', (req: Request, res: Response, next: NextFunction) => {
+  const docsBasicAuthMiddleware = (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ) => {
+    if (
+      isProduction &&
+      (!process.env.DOCS_PASSWORD || process.env.DOCS_PASSWORD === 'secret123')
+    ) {
+      return res
+        .status(403)
+        .send(
+          'Documentacion deshabilitada en produccion (configure un DOCS_PASSWORD seguro).',
+        );
+    }
+
     const authHeader = req.headers.authorization;
 
     if (!authHeader || !authHeader.startsWith('Basic ')) {
@@ -102,7 +117,10 @@ async function bootstrap() {
     }
 
     next();
-  });
+  };
+
+  app.use('/api/docs', docsBasicAuthMiddleware);
+  app.use('/api/docs-json', docsBasicAuthMiddleware);
 
   // 2. Helmet: CSP permisivo exclusivamente en /api/docs para los assets de Scalar
   app.use((req: Request, res: Response, next: NextFunction) => {

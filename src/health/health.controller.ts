@@ -4,6 +4,7 @@ import {
   Header,
   Inject,
   ServiceUnavailableException,
+  UseGuards,
 } from '@nestjs/common';
 import {
   HealthCheck,
@@ -16,7 +17,9 @@ import Redis from 'ioredis';
 import { PrismaService } from '../prisma/prisma.service';
 import { REDIS_CLIENT } from '../redis/redis.constants';
 import { S3StorageService } from '../files/services/s3-storage.service';
-import { Public } from '../auth/decorators/auth.decorator';
+import { Public, Roles } from '../auth/decorators/auth.decorator';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
 import { DEFAULT_BUCKET } from '../files/files.constants';
 
 @ApiTags('Health')
@@ -164,7 +167,8 @@ export class HealthController {
   }
 
   @Get('metrics')
-  @Public()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin', 'superadmin', 'auditor')
   @SkipThrottle()
   @Header('Content-Type', 'text/plain; version=0.0.4; charset=utf-8')
   @ApiOperation({

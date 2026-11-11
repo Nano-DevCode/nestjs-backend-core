@@ -185,6 +185,7 @@ export class AuthController {
   }
 
   @Post('refresh')
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
   @ApiOperation({
     summary: 'Renueva el Access Token mediante Cookie Refresh Token',
     description:

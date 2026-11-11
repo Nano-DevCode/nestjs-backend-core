@@ -30,10 +30,26 @@ import type { UserAuthContext } from '../../auth/interfaces/auth.interface';
 @WebSocketGateway({
   cors: {
     origin: (
-      _origin: string | undefined,
+      origin: string | undefined,
       callback: (err: Error | null, allow?: boolean) => void,
     ) => {
-      callback(null, true);
+      if (!origin) return callback(null, true);
+      const isProd = process.env.NODE_ENV === 'production';
+      const normalized = origin.replace(/\/$/, '');
+      const allowedList = (process.env.FRONTEND_URL || '')
+        .split(',')
+        .map((u) => u.trim().replace(/\/$/, ''))
+        .filter(Boolean);
+
+      if (
+        allowedList.includes(normalized) ||
+        /^https:\/\/([a-zA-Z0-9-]+\.)*nano-service\.com$/.test(normalized) ||
+        (!isProd && /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(normalized))
+      ) {
+        callback(null, true);
+      } else {
+        callback(new Error('Origen WebSocket no permitido por CORS'));
+      }
     },
     credentials: true,
   },
