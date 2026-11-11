@@ -10,6 +10,7 @@ import { RolesGuard } from './guards/roles.guard';
 import { PermissionsGuard } from './guards/permissions.guard';
 import { MailModule } from '../mail/mail.module';
 import { TwoFactorModule } from '../two-factor/two-factor.module';
+import { FeatureFlagsModule } from '../features/feature-flags.module';
 
 import { MobileAuthController } from './mobile-auth.controller';
 import { JwtMobileStrategy } from './strategies/jwt-mobile.strategy';
@@ -34,6 +35,7 @@ import { SessionController } from './session.controller';
     JwtModule.register({}),
     MailModule,
     forwardRef(() => TwoFactorModule),
+    forwardRef(() => FeatureFlagsModule),
   ],
   controllers: [
     AuthController,

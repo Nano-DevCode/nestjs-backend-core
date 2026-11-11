@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import {
   SlashCommandBuilder,
+  MessageFlags,
   type ChatInputCommandInteraction,
 } from 'discord.js';
 import type { ISlashCommand } from './command.interface';
@@ -23,7 +24,7 @@ export class PauseCommand implements ISlashCommand {
     } else {
       await interaction.reply({
         content: '⚠️ No hay ninguna pista reproduciéndose actualmente.',
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
     }
   }

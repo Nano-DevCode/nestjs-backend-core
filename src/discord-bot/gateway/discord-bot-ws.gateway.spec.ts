@@ -27,6 +27,7 @@ describe('DiscordBotWsGateway', () => {
       id: 'socket-discord-1',
       join: jest.fn(),
       leave: jest.fn(),
+      emit: jest.fn(),
     } as unknown as Socket;
   });
 
@@ -45,31 +46,57 @@ describe('DiscordBotWsGateway', () => {
   });
 
   describe('handleJoinGuildRoom', () => {
-    it('should join guild room when guildId is provided in object', () => {
-      const res = gateway.handleJoinGuildRoom(mockSocket, { guildId: 'guild-abc' });
+    it('should join guild room when guildId is provided in object', async () => {
+      const res = await gateway.handleJoinGuildRoom(mockSocket, {
+        guildId: 'guild-abc',
+      });
 
       expect(mockSocket.join).toHaveBeenCalledWith('guild-abc');
       expect(res).toEqual({ event: 'joined', guildId: 'guild-abc' });
     });
 
-    it('should join guild room when guildId is provided as string', () => {
-      const res = gateway.handleJoinGuildRoom(mockSocket, 'guild-xyz');
+    it('should join guild room when guildId is provided as string', async () => {
+      const res = await gateway.handleJoinGuildRoom(mockSocket, 'guild-xyz');
 
       expect(mockSocket.join).toHaveBeenCalledWith('guild-xyz');
       expect(res).toEqual({ event: 'joined', guildId: 'guild-xyz' });
     });
 
-    it('should return error if guildId is missing', () => {
-      const res = gateway.handleJoinGuildRoom(mockSocket, {} as any);
+    it('should return error if guildId is missing', async () => {
+      const res = await gateway.handleJoinGuildRoom(mockSocket, {} as any);
 
       expect(mockSocket.join).not.toHaveBeenCalled();
       expect(res).toEqual({ event: 'error', message: 'guildId requerido' });
+    });
+
+    it('should reject with 403 error if authenticated user does not own the guild', async () => {
+      const mockGuildService = {
+        hasGuildAccess: jest.fn().mockResolvedValue(false),
+      };
+      const protectedGateway = new DiscordBotWsGateway(mockGuildService as any);
+      const userSocket = {
+        ...mockSocket,
+        data: { user: { id: 'user-1', roles: ['user'] } },
+      } as unknown as Socket;
+
+      const res = await protectedGateway.handleJoinGuildRoom(userSocket, {
+        guildId: 'guild-other',
+      });
+
+      expect(mockSocket.join).not.toHaveBeenCalled();
+      expect(res).toEqual({
+        event: 'error',
+        statusCode: 403,
+        message: 'No tienes permiso sobre este servidor de Discord',
+      });
     });
   });
 
   describe('handleLeaveGuildRoom', () => {
     it('should leave guild room when guildId is provided in object', () => {
-      const res = gateway.handleLeaveGuildRoom(mockSocket, { guildId: 'guild-abc' });
+      const res = gateway.handleLeaveGuildRoom(mockSocket, {
+        guildId: 'guild-abc',
+      });
 
       expect(mockSocket.leave).toHaveBeenCalledWith('guild-abc');
       expect(res).toEqual({ event: 'left', guildId: 'guild-abc' });
@@ -96,7 +123,10 @@ describe('DiscordBotWsGateway', () => {
       gateway.emitQueueUpdated('guild-1', queueData);
 
       expect(mockServer.to).toHaveBeenCalledWith('guild-1');
-      expect(mockServer.emit).toHaveBeenCalledWith('discord:queue-updated', queueData);
+      expect(mockServer.emit).toHaveBeenCalledWith(
+        'discord:queue-updated',
+        queueData,
+      );
     });
 
     it('should emit track start to guild room', () => {
@@ -104,7 +134,10 @@ describe('DiscordBotWsGateway', () => {
       gateway.emitTrackStart('guild-1', trackData);
 
       expect(mockServer.to).toHaveBeenCalledWith('guild-1');
-      expect(mockServer.emit).toHaveBeenCalledWith('discord:track-start', trackData);
+      expect(mockServer.emit).toHaveBeenCalledWith(
+        'discord:track-start',
+        trackData,
+      );
     });
 
     it('should emit playback state to guild room', () => {
@@ -112,24 +145,38 @@ describe('DiscordBotWsGateway', () => {
       gateway.emitPlaybackState('guild-1', state);
 
       expect(mockServer.to).toHaveBeenCalledWith('guild-1');
-      expect(mockServer.emit).toHaveBeenCalledWith('discord:playback-state', state);
+      expect(mockServer.emit).toHaveBeenCalledWith(
+        'discord:playback-state',
+        state,
+      );
     });
 
     it('should emit track progress to guild room', () => {
-      const progress = { guildId: 'guild-1', position: 1500, duration: 3000, isPaused: false };
+      const progress = {
+        guildId: 'guild-1',
+        position: 1500,
+        duration: 3000,
+        isPaused: false,
+      };
       gateway.emitTrackProgress('guild-1', progress);
 
       expect(mockServer.to).toHaveBeenCalledWith('guild-1');
-      expect(mockServer.emit).toHaveBeenCalledWith('discord:track-progress', progress);
+      expect(mockServer.emit).toHaveBeenCalledWith(
+        'discord:track-progress',
+        progress,
+      );
     });
 
     it('should do nothing gracefully if server is null', () => {
       gateway.server = null as any;
       expect(() => gateway.emitQueueUpdated('guild-1', {})).not.toThrow();
       expect(() => gateway.emitTrackStart('guild-1', {})).not.toThrow();
-      expect(() => gateway.emitPlaybackState('guild-1', {} as any)).not.toThrow();
-      expect(() => gateway.emitTrackProgress('guild-1', {} as any)).not.toThrow();
+      expect(() =>
+        gateway.emitPlaybackState('guild-1', {} as any),
+      ).not.toThrow();
+      expect(() =>
+        gateway.emitTrackProgress('guild-1', {} as any),
+      ).not.toThrow();
     });
   });
 });
-

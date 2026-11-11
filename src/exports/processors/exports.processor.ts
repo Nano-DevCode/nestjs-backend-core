@@ -1,4 +1,4 @@
-import { Logger } from '@nestjs/common';
+import { Logger, Optional } from '@nestjs/common';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job } from 'bullmq';
 import { EXPORTS_QUEUE } from '../exports.constants';
@@ -15,7 +15,7 @@ export class ExportsProcessor extends WorkerHost {
   constructor(
     private readonly exportsService: ExportsService,
     private readonly s3StorageService: S3StorageService,
-    private readonly notificationGateway: NotificationGateway,
+    @Optional() private readonly notificationGateway?: NotificationGateway,
   ) {
     super();
   }
@@ -108,7 +108,7 @@ export class ExportsProcessor extends WorkerHost {
       };
 
       // 6. Notificar al usuario en tiempo real vía WebSocket
-      this.notificationGateway.sendToUser(userId, {
+      this.notificationGateway?.sendToUser(userId, {
         type: 'EXPORT_READY',
         exportId,
         title,
@@ -137,7 +137,7 @@ export class ExportsProcessor extends WorkerHost {
       });
 
       // Notificar fallo en tiempo real
-      this.notificationGateway.sendToUser(userId, {
+      this.notificationGateway?.sendToUser(userId, {
         type: 'EXPORT_FAILED',
         exportId,
         title,

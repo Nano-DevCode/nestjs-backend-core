@@ -7,6 +7,8 @@ import { LavalinkService } from './audio/lavalink.service';
 import { QueueManagerService } from './queue/queue-manager.service';
 import { DiscordPlaybackService } from './audio/discord-playback.service';
 import { DiscordGuildService } from './persistence/discord-guild.service';
+import { DiscordOAuthService } from './oauth/discord-oauth.service';
+import { GuildAccessGuard } from './guards/guild-access.guard';
 import { CommandRegistryService } from './commands/command-registry.service';
 import { PlayCommand } from './commands/play.command';
 import { PauseCommand } from './commands/pause.command';
@@ -22,6 +24,9 @@ import { LeaveCommand } from './commands/leave.command';
 import { StopCommand } from './commands/stop.command';
 import { SetChannelCommand } from './commands/setchannel.command';
 import { SayCommand } from './commands/say.command';
+import { TwitchController } from './twitch/twitch.controller';
+import { TwitchChatService } from './twitch/twitch-chat.service';
+import { TwitchRateLimiterService } from './twitch/twitch-rate-limiter.service';
 
 @Module({})
 export class DiscordBotModule {
@@ -29,9 +34,11 @@ export class DiscordBotModule {
     return {
       module: DiscordBotModule,
       imports: [PrismaModule],
-      controllers: [DiscordBotController],
+      controllers: [DiscordBotController, TwitchController],
       providers: [
         DiscordGuildService,
+        DiscordOAuthService,
+        GuildAccessGuard,
         QueueManagerService,
         LavalinkService,
         DiscordPlaybackService,
@@ -52,14 +59,20 @@ export class DiscordBotModule {
         CommandRegistryService,
         DiscordGateway,
         DiscordBotWsGateway,
+        TwitchRateLimiterService,
+        TwitchChatService,
       ],
       exports: [
         DiscordGuildService,
+        DiscordOAuthService,
+        GuildAccessGuard,
         QueueManagerService,
         LavalinkService,
         DiscordPlaybackService,
         DiscordGateway,
         DiscordBotWsGateway,
+        TwitchRateLimiterService,
+        TwitchChatService,
       ],
     };
   }

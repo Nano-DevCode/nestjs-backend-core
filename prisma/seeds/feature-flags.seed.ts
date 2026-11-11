@@ -14,25 +14,29 @@ export interface CoreFeatureFlagDefinition {
 export const CORE_FEATURE_FLAGS: CoreFeatureFlagDefinition[] = [
   {
     key: 'DISCORD_BOT_ENABLED',
-    description: 'Módulo del bot de música en Discord y orquestación con Lavalink v4.',
+    description:
+      'Módulo del bot de música en Discord y orquestación con Lavalink v4.',
     isEnabled: true,
-    rules: { percentage: 100, allowedRoles: ['admin', 'user'] },
+    rules: { percentage: 100, allowedRoles: ['user', 'admin', 'superadmin'] },
   },
   {
     key: 'BETA_FEATURE',
-    description: 'Acceso anticipado a endpoints y herramientas experimentales con verificación @RequireFeature.',
+    description:
+      'Acceso anticipado a endpoints y herramientas experimentales con verificación @RequireFeature.',
     isEnabled: true,
     rules: { percentage: 100, allowedRoles: ['admin', 'user'] },
   },
   {
     key: 'DARK_MODE_V2',
-    description: 'Motor de temas visuales dinámicos con soporte OLED y gradientes reactivos.',
+    description:
+      'Motor de temas visuales dinámicos con soporte OLED y gradientes reactivos.',
     isEnabled: true,
     rules: { percentage: 100 },
   },
   {
     key: 'S3_MULTIPART_V2',
-    description: 'Subida paralela por fragmentos (chunks) para archivos pesados mayores a 50 MB.',
+    description:
+      'Subida paralela por fragmentos (chunks) para archivos pesados mayores a 50 MB.',
     isEnabled: false,
     rules: { percentage: 0, allowedRoles: ['admin'] },
   },
@@ -61,7 +65,9 @@ export async function seedFeatureFlags(prisma: PrismaClient): Promise<void> {
 
   // Depurar alias heredados en minúsculas para mantener SSOT
   await prisma.featureFlag.deleteMany({
-    where: { key: { in: ['oauth_social_login', 'oauth_google', 'oauth_facebook'] } },
+    where: {
+      key: { in: ['oauth_social_login', 'oauth_google', 'oauth_facebook'] },
+    },
   });
 
   for (const flag of CORE_FEATURE_FLAGS) {
@@ -69,15 +75,22 @@ export async function seedFeatureFlags(prisma: PrismaClient): Promise<void> {
       where: { key: flag.key },
       update: {
         description: flag.description,
+        ...(flag.key === 'DISCORD_BOT_ENABLED' && flag.rules
+          ? { rules: flag.rules as unknown as Prisma.InputJsonValue }
+          : {}),
       },
       create: {
         key: flag.key,
         description: flag.description,
         isEnabled: flag.isEnabled,
-        rules: flag.rules ? (flag.rules as unknown as Prisma.InputJsonValue) : Prisma.JsonNull,
+        rules: flag.rules
+          ? (flag.rules as unknown as Prisma.InputJsonValue)
+          : Prisma.JsonNull,
       },
     });
   }
 
-  console.log(`✅ ${CORE_FEATURE_FLAGS.length} Feature Flags verificadas en base de datos.`);
+  console.log(
+    `✅ ${CORE_FEATURE_FLAGS.length} Feature Flags verificadas en base de datos.`,
+  );
 }

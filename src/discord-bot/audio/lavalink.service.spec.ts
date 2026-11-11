@@ -16,14 +16,26 @@ describe('LavalinkService', () => {
   it('should be defined', () => {
     expect(service).toBeDefined();
     expect(service.isConnected).toBe(false);
+    expect(service.getNodesStatus()).toEqual([]);
+  });
+
+  describe('registerNode without shoukaku initialized', () => {
+    it('should return registered=false if shoukaku is not active', () => {
+      const res = service.registerNode({
+        name: 'node-test',
+        host: 'localhost',
+        port: 2333,
+        password: 'pass',
+      });
+      expect(res.registered).toBe(false);
+    });
   });
 
   describe('resolveTracks without shoukaku initialized', () => {
     it('should return error if service is not initialized', async () => {
       const requester: AudioTrackRequester = {
         id: 'user-1',
-        tag: 'User#1234',
-        displayName: 'User',
+        username: 'User#1234',
       };
       const result = await service.resolveTracks('test song', requester);
       expect(result.loadType).toBe('error');
@@ -31,4 +43,3 @@ describe('LavalinkService', () => {
     });
   });
 });
-

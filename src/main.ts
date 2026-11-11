@@ -1,5 +1,10 @@
 import { NestFactory } from '@nestjs/core';
-import { ValidationPipe, VersioningType, type LogLevel } from '@nestjs/common';
+import {
+  ValidationPipe,
+  VersioningType,
+  VERSION_NEUTRAL,
+  type LogLevel,
+} from '@nestjs/common';
 import * as crypto from 'crypto';
 import {
   DocumentBuilder,
@@ -52,10 +57,10 @@ async function bootstrap() {
     exclude: ['api/docs', 'api/docs/(.*)', 'docs', 'docs/(.*)'],
   });
 
-  // Versionado global URI (/api/v1/...)
+  // Versionado global URI (/api/v1/... y retrocompatible con /api/...)
   app.enableVersioning({
     type: VersioningType.URI,
-    defaultVersion: '1',
+    defaultVersion: [VERSION_NEUTRAL, '1'],
   });
 
   // 1. Basic Auth Middleware para proteger la ruta /api/docs (comparación en tiempo constante)
@@ -420,4 +425,11 @@ async function bootstrap() {
     `Scalar API documentation (Protegida) at: http://localhost:${port}/api/docs`,
   );
 }
-void bootstrap();
+
+bootstrap().catch((err: unknown) => {
+  console.error(
+    '❌ [Bootstrap] Error crítico durante el arranque del servidor HTTP NestJS:',
+    err instanceof Error ? err.stack || err.message : err,
+  );
+  process.exit(1);
+});

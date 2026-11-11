@@ -104,7 +104,7 @@ describe('CommandRegistryService', () => {
 
       expect(interaction.reply).toHaveBeenCalledWith({
         content: '❌ Comando no reconocido: `/unknown-cmd`',
-        ephemeral: true,
+        flags: 64,
       });
     });
 
@@ -132,7 +132,7 @@ describe('CommandRegistryService', () => {
 
       expect(interaction.reply).toHaveBeenCalledWith({
         content: '❌ Por favor usa los comandos en el canal asignado: <#music-channel>',
-        ephemeral: true,
+        flags: 64,
       });
       expect(playCmd.execute).not.toHaveBeenCalled();
     });
@@ -213,7 +213,7 @@ describe('CommandRegistryService', () => {
 
       expect(interaction.reply).toHaveBeenCalledWith({
         content: '❌ Ocurrió un error inesperado al procesar este comando.',
-        ephemeral: true,
+        flags: 64,
       });
     });
   });

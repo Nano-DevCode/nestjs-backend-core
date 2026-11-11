@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import {
   SlashCommandBuilder,
   EmbedBuilder,
+  MessageFlags,
   type ChatInputCommandInteraction,
   type GuildMember,
 } from 'discord.js';
@@ -35,7 +36,7 @@ export class PlayCommand implements ISlashCommand {
     if (!voiceChannel) {
       await interaction.reply({
         content: '❌ Debes estar en un canal de voz para usar este comando.',
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
       return;
     }

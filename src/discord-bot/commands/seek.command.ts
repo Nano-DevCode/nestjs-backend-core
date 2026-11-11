@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import {
   SlashCommandBuilder,
+  MessageFlags,
   type ChatInputCommandInteraction,
 } from 'discord.js';
 import type { ISlashCommand } from './command.interface';
@@ -35,7 +36,7 @@ export class SeekCommand implements ISlashCommand {
     } else {
       await interaction.reply({
         content: '⚠️ No hay reproducción activa para ajustar la posición.',
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
     }
   }

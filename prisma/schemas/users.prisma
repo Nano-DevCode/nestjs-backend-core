@@ -6,9 +6,11 @@ model User {
   isActive        Boolean    @default(true) @map("is_active")
   deletedAt       DateTime?  @map("deleted_at")
   emailVerifiedAt    DateTime?       @map("email_verified_at")
+  discordUserId      String?         @map("discord_user_id")
   profile            Profile?
   twoFactor          UserTwoFactor?
   oauthAccounts      OAuthAccount[]
+  userGuilds         UserGuild[]
   roles              UserRole[]
   auditLogs          AuditLog[]
   notifications      Notification[]

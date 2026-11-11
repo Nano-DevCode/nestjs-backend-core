@@ -36,7 +36,9 @@ export class SocialAuthService {
     // 1. Resolver lista de orígenes permitidos
     const configuredOrigins = [
       ...(process.env.FRONTEND_URL ? process.env.FRONTEND_URL.split(',') : []),
-      ...(process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(',') : []),
+      ...(process.env.ALLOWED_ORIGINS
+        ? process.env.ALLOWED_ORIGINS.split(',')
+        : []),
       'https://sistema.nano-service.com',
       'http://localhost:5173',
       'http://localhost:3000',
@@ -46,8 +48,11 @@ export class SocialAuthService {
 
     const isDev = process.env.NODE_ENV !== 'production';
     const defaultWebUrl = isDev
-      ? configuredOrigins.find((o) => o.includes(':5173') || o.includes('localhost')) || 'http://localhost:5173'
-      : configuredOrigins.find((o) => !o.includes('localhost')) || 'https://sistema.nano-service.com';
+      ? configuredOrigins.find(
+          (o) => o.includes(':5173') || o.includes('localhost'),
+        ) || 'http://localhost:5173'
+      : configuredOrigins.find((o) => !o.includes('localhost')) ||
+        'https://sistema.nano-service.com';
 
     let targetFrontendUrl = defaultWebUrl;
     let mobileRedirectUri: string | null = null;
@@ -59,7 +64,9 @@ export class SocialAuthService {
         );
         if (
           decoded?.platform === 'mobile' ||
-          (decoded?.redirectUri && typeof decoded.redirectUri === 'string' && !decoded.redirectUri.startsWith('http'))
+          (decoded?.redirectUri &&
+            typeof decoded.redirectUri === 'string' &&
+            !decoded.redirectUri.startsWith('http'))
         ) {
           mobileRedirectUri = decoded.redirectUri;
         } else if (
@@ -68,9 +75,14 @@ export class SocialAuthService {
           decoded.redirectUri.startsWith('http')
         ) {
           const cleanUrl = decoded.redirectUri.trim().replace(/\/+$/, '');
+          const isLocalhostUrl =
+            cleanUrl.includes('localhost') || cleanUrl.includes('127.0.0.1');
           const isAllowed =
-            configuredOrigins.some((origin) => cleanUrl.startsWith(origin)) ||
-            (isDev && cleanUrl.includes('localhost'));
+            (!isLocalhostUrl &&
+              configuredOrigins.some((origin) =>
+                cleanUrl.startsWith(origin),
+              )) ||
+            (isDev && isLocalhostUrl);
           if (isAllowed) {
             targetFrontendUrl = cleanUrl;
           }
@@ -134,7 +146,6 @@ export class SocialAuthService {
               avatarUrl: profile.avatarUrl,
             },
           });
-
         }
       } else {
         // 3. Buscar usuario por email para Account Linking Seguro
@@ -284,8 +295,8 @@ export class SocialAuthService {
 
       const isProfileComplete = Boolean(
         targetUser.profile?.firstName?.trim() &&
-          targetUser.profile?.firstLastName?.trim() &&
-          targetUser.profile?.secondLastName?.trim(),
+        targetUser.profile?.firstLastName?.trim() &&
+        targetUser.profile?.secondLastName?.trim(),
       );
 
       const authContext: UserAuthContext = {
@@ -298,14 +309,11 @@ export class SocialAuthService {
         isProfileComplete,
       };
 
-
       if (mobileRedirectUri) {
         const mobileTokens =
           await this.authTokenService.createMobileTokens(authContext);
         const sep = mobileRedirectUri.includes('?') ? '&' : '?';
-        const userParam = encodeURIComponent(
-          JSON.stringify(mobileTokens.user),
-        );
+        const userParam = encodeURIComponent(JSON.stringify(mobileTokens.user));
         return res.redirect(
           `${mobileRedirectUri}${sep}accessToken=${encodeURIComponent(mobileTokens.accessToken)}&refreshToken=${encodeURIComponent(mobileTokens.refreshToken)}&user=${userParam}`,
         );

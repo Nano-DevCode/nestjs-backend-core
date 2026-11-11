@@ -15,6 +15,22 @@ export interface TrackResolveResult {
   error?: string;
 }
 
+export interface LavalinkNodeInput {
+  name: string;
+  host: string;
+  port: number;
+  password: string;
+  secure?: boolean;
+}
+
+export interface LavalinkNodeStatus {
+  name: string;
+  state: number;
+  connected: boolean;
+  players: number;
+  playingPlayers: number;
+}
+
 @Injectable()
 export class LavalinkService {
   private readonly logger = new Logger(LavalinkService.name);
@@ -38,11 +54,16 @@ export class LavalinkService {
       },
     ];
 
+    this.logger.log(
+      `Conectando Shoukaku al nodo Lavalink [${config.lavalink.name}] en ${config.lavalink.host}:${config.lavalink.port} (secure=${config.lavalink.secure})`,
+    );
+
     try {
       this.shoukaku = new Shoukaku(new Connectors.DiscordJS(client), nodes, {
         moveOnDisconnect: true,
         resume: true,
-        reconnectTries: 5,
+        reconnectTries: 30,
+        reconnectInterval: 5,
         restTimeout: 10000,
       });
 
@@ -60,7 +81,10 @@ export class LavalinkService {
       this.shoukaku.on(
         'close',
         (name: string, code: number, reason: string) => {
-          this.isNodeReady = false;
+          this.isNodeReady = (this.shoukaku?.nodes.size ?? 0) > 0 &&
+            Array.from(this.shoukaku?.nodes.values() ?? []).some(
+              (n) => n.state === 1,
+            );
           this.logger.warn(
             `Conexión cerrada con Lavalink [${name}] (Código: ${code}, Razón: ${reason})`,
           );
@@ -68,7 +92,10 @@ export class LavalinkService {
       );
 
       this.shoukaku.on('disconnect', (name: string, count: number) => {
-        this.isNodeReady = false;
+        this.isNodeReady = (this.shoukaku?.nodes.size ?? 0) > 0 &&
+          Array.from(this.shoukaku?.nodes.values() ?? []).some(
+            (n) => n.state === 1,
+          );
         this.logger.warn(
           `Nodo Lavalink [${name}] desconectado. Intento #${count}`,
         );
@@ -82,6 +109,61 @@ export class LavalinkService {
 
   get isConnected(): boolean {
     return this.isNodeReady && this.shoukaku !== null;
+  }
+
+  getNodesStatus(): LavalinkNodeStatus[] {
+    if (!this.shoukaku) {
+      return [];
+    }
+
+    return Array.from(this.shoukaku.nodes.values()).map((node) => ({
+      name: node.name,
+      state: node.state,
+      connected: node.state === 1,
+      players: node.stats?.players ?? 0,
+      playingPlayers: node.stats?.playingPlayers ?? 0,
+    }));
+  }
+
+  registerNode(nodeInput: LavalinkNodeInput): {
+    registered: boolean;
+    nodeName: string;
+    isConnected: boolean;
+    message: string;
+  } {
+    if (!this.shoukaku) {
+      return {
+        registered: false,
+        nodeName: nodeInput.name,
+        isConnected: false,
+        message:
+          'El motor Shoukaku/Lavalink no está inicializado porque el bot de Discord no está activo.',
+      };
+    }
+
+    const existing = this.shoukaku.nodes.get(nodeInput.name);
+    if (existing) {
+      return {
+        registered: true,
+        nodeName: existing.name,
+        isConnected: existing.state === 1,
+        message: `El nodo Lavalink '${existing.name}' ya se encuentra registrado.`,
+      };
+    }
+
+    this.shoukaku.addNode({
+      name: nodeInput.name,
+      url: `${nodeInput.host}:${nodeInput.port}`,
+      auth: nodeInput.password,
+      secure: Boolean(nodeInput.secure),
+    });
+
+    return {
+      registered: true,
+      nodeName: nodeInput.name,
+      isConnected: this.isConnected,
+      message: `Nodo Lavalink '${nodeInput.name}' (${nodeInput.host}:${nodeInput.port}) registrado en Shoukaku.`,
+    };
   }
 
   getPlayer(guildId: string): Player | undefined {
@@ -207,7 +289,7 @@ export class LavalinkService {
       allowFallback = true;
     }
 
-    let result = await this.resolveIdentifier(node, identifier, requester);
+    const result = await this.resolveIdentifier(node, identifier, requester);
 
     // 2. Cascada automática: si ytmsearch no encuentra o falla, reintentar con ytsearch y luego scsearch
     if (
@@ -398,7 +480,6 @@ export class LavalinkService {
       };
     }
   }
-
 
   async playTrack(guildId: string, track: AudioTrack): Promise<boolean> {
     const player = this.getPlayer(guildId);

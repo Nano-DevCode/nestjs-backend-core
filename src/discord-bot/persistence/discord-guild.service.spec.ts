@@ -9,13 +9,23 @@ describe('DiscordGuildService', () => {
       findUnique: jest.Mock;
       upsert: jest.Mock;
     };
+    oAuthAccount: {
+      upsert: jest.Mock;
+      findMany: jest.Mock;
+      deleteMany: jest.Mock;
+    };
   };
 
   beforeEach(async () => {
     prismaMock = {
       discordGuildConfig: {
         findUnique: jest.fn(),
-        upsert: jest.fn(),
+        upsert: jest.fn().mockResolvedValue({ guildId: 'g-123' }),
+      },
+      oAuthAccount: {
+        upsert: jest.fn().mockResolvedValue({}),
+        findMany: jest.fn().mockResolvedValue([]),
+        deleteMany: jest.fn().mockResolvedValue({ count: 1 }),
       },
     };
 
@@ -90,5 +100,33 @@ describe('DiscordGuildService', () => {
       expect(result.defaultVolume).toBe(80);
     });
   });
-});
 
+  describe('registerUserLavalinkSession & getUserRegistrations', () => {
+    it('debe registrar y recuperar la sesión de Lavalink de un usuario', async () => {
+      const reg = await service.registerUserLavalinkSession('user-1', {
+        guildId: 'g-123',
+        guildName: 'Music Server',
+        voiceChannelId: 'vc-1',
+        discordUserId: 'disc-99',
+      });
+
+      expect(reg.userId).toBe('user-1');
+      expect(reg.guildId).toBe('g-123');
+      expect(reg.voiceChannelId).toBe('vc-1');
+      expect(prismaMock.oAuthAccount.upsert).toHaveBeenCalled();
+
+      const list = await service.getUserRegistrations('user-1');
+      expect(list).toHaveLength(1);
+      expect(list[0].guildId).toBe('g-123');
+    });
+
+    it('debe desvincular el servidor del usuario con unregisterUserGuild', async () => {
+      await service.registerUserLavalinkSession('user-1', {
+        guildId: 'g-123',
+      });
+
+      const removed = await service.unregisterUserGuild('user-1', 'g-123');
+      expect(removed).toBe(true);
+    });
+  });
+});

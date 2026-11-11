@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import {
   SlashCommandBuilder,
+  MessageFlags,
   type ChatInputCommandInteraction,
   type GuildMember,
 } from 'discord.js';
@@ -26,7 +27,7 @@ export class JoinCommand implements ISlashCommand {
     if (!voiceChannel) {
       await interaction.reply({
         content: '❌ Debes ingresar primero a un canal de voz.',
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
       return;
     }
@@ -49,7 +50,7 @@ export class JoinCommand implements ISlashCommand {
     } else {
       await interaction.reply({
         content: '❌ No se pudo conectar al canal de voz.',
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
     }
   }

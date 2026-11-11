@@ -35,7 +35,7 @@ describe('ClearCommand', () => {
 
     expect(interaction.reply).toHaveBeenCalledWith({
       content: '📭 La cola ya se encuentra vacía.',
-      ephemeral: true,
+      flags: 64,
     });
   });
 

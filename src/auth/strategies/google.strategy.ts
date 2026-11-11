@@ -11,9 +11,16 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
   constructor() {
     const clientID = process.env.GOOGLE_CLIENT_ID;
     const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
+    const isProduction = process.env.NODE_ENV === 'production';
+    const rawCallback = process.env.GOOGLE_CALLBACK_URL;
     const callbackURL =
-      process.env.GOOGLE_CALLBACK_URL ||
-      'https://sistema.nano-service.com/api/auth/google/callback';
+      isProduction &&
+      (!rawCallback ||
+        rawCallback.includes('localhost') ||
+        rawCallback.includes('127.0.0.1'))
+        ? 'https://sistema.nano-service.com/api/auth/google/callback'
+        : rawCallback ||
+          'https://sistema.nano-service.com/api/auth/google/callback';
 
     const isConfigured = Boolean(clientID && clientSecret);
 

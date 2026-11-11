@@ -1,4 +1,4 @@
-import { Module, Global } from '@nestjs/common';
+import { Module, Global, forwardRef } from '@nestjs/common';
 import { PrismaModule } from '../prisma/prisma.module';
 import { RedisModule } from '../redis/redis.module';
 import { NotificationsModule } from '../notifications/notifications.module';
@@ -8,7 +8,11 @@ import { FeatureFlagsController } from './feature-flags.controller';
 
 @Global()
 @Module({
-  imports: [PrismaModule, RedisModule, NotificationsModule],
+  imports: [
+    PrismaModule,
+    RedisModule,
+    forwardRef(() => NotificationsModule),
+  ],
   controllers: [FeatureFlagsController],
   providers: [FeatureFlagsService, FeatureFlagGuard],
   exports: [FeatureFlagsService, FeatureFlagGuard],

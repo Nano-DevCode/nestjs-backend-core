@@ -1,4 +1,10 @@
-import { Inject, Injectable, Logger, type OnModuleInit } from '@nestjs/common';
+import {
+  Inject,
+  Injectable,
+  Logger,
+  Optional,
+  type OnModuleInit,
+} from '@nestjs/common';
 import Redis from 'ioredis';
 import { REDIS_CLIENT } from '../redis/redis.constants';
 import { PrismaService } from '../prisma/prisma.service';
@@ -17,7 +23,7 @@ export const CORE_FEATURE_FLAGS = [
     description:
       'Módulo del bot de música en Discord y orquestación con Lavalink v4.',
     isEnabled: true,
-    rules: { percentage: 100, allowedRoles: ['admin', 'superadmin'] },
+    rules: { percentage: 100, allowedRoles: ['user', 'admin', 'superadmin'] },
   },
   {
     key: FeatureFlagKey.BETA_FEATURE,
@@ -68,7 +74,7 @@ export class FeatureFlagsService implements OnModuleInit {
   constructor(
     private readonly prisma: PrismaService,
     @Inject(REDIS_CLIENT) private readonly redis: Redis,
-    private readonly notificationGateway: NotificationGateway,
+    @Optional() private readonly notificationGateway?: NotificationGateway,
   ) {}
 
   async onModuleInit(): Promise<void> {
@@ -308,7 +314,7 @@ export class FeatureFlagsService implements OnModuleInit {
           ? 100
           : 0;
 
-    this.notificationGateway.broadcastFeatureFlag({
+    this.notificationGateway?.broadcastFeatureFlag({
       key: flag.key,
       enabled: flag.isEnabled,
       roles,

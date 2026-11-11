@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import {
   SlashCommandBuilder,
+  MessageFlags,
   type ChatInputCommandInteraction,
 } from 'discord.js';
 import type { ISlashCommand } from './command.interface';
@@ -25,7 +26,7 @@ export class ClearCommand implements ISlashCommand {
     if (!queue || queue.tracks.length === 0) {
       await interaction.reply({
         content: '📭 La cola ya se encuentra vacía.',
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
       return;
     }

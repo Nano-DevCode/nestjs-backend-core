@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import type { ChatInputCommandInteraction } from 'discord.js';
+import { MessageFlags, type ChatInputCommandInteraction } from 'discord.js';
 import type { ISlashCommand, SlashCommandData } from './command.interface';
 import { PlayCommand } from './play.command';
 import { PauseCommand } from './pause.command';
@@ -78,7 +78,7 @@ export class CommandRegistryService {
       this.logger.warn(`Comando no reconocido: ${interaction.commandName}`);
       await interaction.reply({
         content: `❌ Comando no reconocido: \`/${interaction.commandName}\``,
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
       return;
     }
@@ -99,7 +99,7 @@ export class CommandRegistryService {
         ) {
           await interaction.reply({
             content: `❌ Por favor usa los comandos en el canal asignado: <#${guildConfig.dedicatedChannelId}>`,
-            ephemeral: true,
+            flags: MessageFlags.Ephemeral,
           });
           return;
         }
@@ -124,7 +124,10 @@ export class CommandRegistryService {
       if (interaction.deferred || interaction.replied) {
         await interaction.editReply({ content: replyContent });
       } else {
-        await interaction.reply({ content: replyContent, ephemeral: true });
+        await interaction.reply({
+          content: replyContent,
+          flags: MessageFlags.Ephemeral,
+        });
       }
     }
   }

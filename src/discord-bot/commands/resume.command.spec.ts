@@ -41,7 +41,7 @@ describe('ResumeCommand', () => {
 
     expect(interaction.reply).toHaveBeenCalledWith({
       content: '⚠️ No hay ninguna pista pausada en este momento.',
-      ephemeral: true,
+      flags: 64,
     });
   });
 });

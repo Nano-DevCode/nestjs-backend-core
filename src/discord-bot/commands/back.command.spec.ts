@@ -43,7 +43,7 @@ describe('BackCommand', () => {
 
     expect(interaction.reply).toHaveBeenCalledWith({
       content: '⚠️ No hay canciones previas en el historial de reproducción.',
-      ephemeral: true,
+      flags: 64,
     });
   });
 });

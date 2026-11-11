@@ -36,7 +36,7 @@ describe('RemoveCommand', () => {
 
     expect(interaction.reply).toHaveBeenCalledWith({
       content: '📭 No hay pistas en la cola para remover.',
-      ephemeral: true,
+      flags: 64,
     });
   });
 
@@ -81,7 +81,7 @@ describe('RemoveCommand', () => {
 
     expect(interaction.reply).toHaveBeenCalledWith({
       content: '⚠️ No existe ninguna pista en la posición #5. La cola tiene 1 elementos.',
-      ephemeral: true,
+      flags: 64,
     });
   });
 });

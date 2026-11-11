@@ -52,7 +52,7 @@ export class FilesController {
 
   @Post('upload')
   @RequirePermissions('files.upload')
-  @Roles('admin', 'user')
+  @Roles('admin', 'superadmin')
   @Throttle({ default: { limit: 20, ttl: 60000 } })
   @ApiOperation({
     summary:
@@ -108,7 +108,7 @@ export class FilesController {
   @Post('process-image')
   @HttpCode(HttpStatus.ACCEPTED)
   @RequirePermissions('files.upload')
-  @Roles('admin', 'user')
+  @Roles('admin', 'superadmin')
   @Throttle({ default: { limit: 15, ttl: 60000 } })
   @ApiOperation({
     summary:
@@ -160,7 +160,7 @@ export class FilesController {
 
   @Post('upload-multiple')
   @RequirePermissions('files.upload')
-  @Roles('admin', 'user')
+  @Roles('admin', 'superadmin')
   @Throttle({ default: { limit: 10, ttl: 60000 } })
   @ApiOperation({
     summary:

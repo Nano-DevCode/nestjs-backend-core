@@ -33,7 +33,7 @@ describe('PlayCommand', () => {
 
     expect(interaction.reply).toHaveBeenCalledWith({
       content: '❌ Debes estar en un canal de voz para usar este comando.',
-      ephemeral: true,
+      flags: 64,
     });
   });
 

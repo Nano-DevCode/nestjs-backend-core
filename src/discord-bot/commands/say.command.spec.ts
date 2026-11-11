@@ -22,7 +22,7 @@ describe('SayCommand', () => {
 
     expect(interaction.reply).toHaveBeenCalledWith({
       content: '❌ Este comando solo puede usarse dentro de un servidor.',
-      ephemeral: true,
+      flags: 64,
     });
   });
 
@@ -44,7 +44,7 @@ describe('SayCommand', () => {
 
     expect(interaction.reply).toHaveBeenCalledWith({
       content: '❌ No se pudo verificar la identidad del bot en el servidor.',
-      ephemeral: true,
+      flags: 64,
     });
   });
 
@@ -75,7 +75,7 @@ describe('SayCommand', () => {
     expect(mockTargetChannel.permissionsFor).toHaveBeenCalledWith(mockBotMember);
     expect(interaction.reply).toHaveBeenCalledWith({
       content: '❌ El bot no tiene permisos suficientes (`Enviar Mensajes`) en el canal <#c-1>.',
-      ephemeral: true,
+      flags: 64,
     });
   });
 
@@ -110,7 +110,7 @@ describe('SayCommand', () => {
     });
     expect(interaction.reply).toHaveBeenCalledWith({
       content: '✅ Mensaje enviado exitosamente a <#c-1>.',
-      ephemeral: true,
+      flags: 64,
     });
   });
 
@@ -141,7 +141,7 @@ describe('SayCommand', () => {
 
     expect(interaction.reply).toHaveBeenCalledWith({
       content: '❌ Falló el envío del mensaje: Discord API error',
-      ephemeral: true,
+      flags: 64,
     });
   });
 });

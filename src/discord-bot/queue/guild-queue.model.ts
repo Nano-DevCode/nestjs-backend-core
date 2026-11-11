@@ -1,3 +1,5 @@
+export const MAX_HISTORY_ITEMS = 10;
+
 export interface AudioTrackRequester {
   id: string;
   username: string;
@@ -64,7 +66,9 @@ export class GuildQueue {
 
     if (this.currentTrack && this.repeatMode === 'off') {
       this.history.unshift(this.currentTrack);
-      if (this.history.length > 50) this.history.pop();
+      while (this.history.length > MAX_HISTORY_ITEMS) {
+        this.history.pop();
+      }
     }
 
     const next = this.tracks.shift() || null;
@@ -97,6 +101,7 @@ export class GuildQueue {
   }
 
   toJSON() {
+    const cappedHistory = this.history.slice(0, MAX_HISTORY_ITEMS);
     return {
       guildId: this.guildId,
       textChannelId: this.textChannelId,
@@ -104,7 +109,8 @@ export class GuildQueue {
       currentTrack: this.currentTrack,
       queueLength: this.tracks.length,
       tracks: this.tracks,
-      historyLength: this.history.length,
+      history: cappedHistory,
+      historyLength: cappedHistory.length,
       volume: this.volume,
       isPaused: this.isPaused,
       repeatMode: this.repeatMode,

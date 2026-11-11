@@ -40,7 +40,7 @@ export class MobileFilesController {
 
   @Post('presigned-url')
   @RequirePermissions('files.upload')
-  @Roles('admin', 'user')
+  @Roles('admin', 'superadmin')
   @Throttle({ default: { limit: 15, ttl: 60000 } })
   @ApiOperation({
     summary:
@@ -78,7 +78,7 @@ export class MobileFilesController {
 
   @Post('confirm-upload')
   @RequirePermissions('files.upload')
-  @Roles('admin', 'user')
+  @Roles('admin', 'superadmin')
   @Throttle({ default: { limit: 20, ttl: 60000 } })
   @ApiOperation({
     summary:

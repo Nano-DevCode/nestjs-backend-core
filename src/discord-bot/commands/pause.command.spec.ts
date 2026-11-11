@@ -41,7 +41,7 @@ describe('PauseCommand', () => {
 
     expect(interaction.reply).toHaveBeenCalledWith({
       content: '⚠️ No hay ninguna pista reproduciéndose actualmente.',
-      ephemeral: true,
+      flags: 64,
     });
   });
 });

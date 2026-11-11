@@ -51,13 +51,12 @@ describe('loadDiscordBotConfig', () => {
     expect(config.spotify?.clientSecret).toBe('spotify-sec');
   });
 
-  it('should fallback to localhost if LAVALINK_HOST is "lavalink" and not running inside docker', () => {
-    delete process.env.DOCKER_CONTAINER;
+  it('should respect LAVALINK_HOST when set to "lavalink" in Docker Compose', () => {
     process.env.LAVALINK_HOST = 'lavalink';
 
     const config = loadDiscordBotConfig();
 
-    expect(config.lavalink.host).toBe('localhost');
+    expect(config.lavalink.host).toBe('lavalink');
   });
 });
 

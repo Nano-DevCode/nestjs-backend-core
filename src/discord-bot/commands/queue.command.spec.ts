@@ -29,7 +29,7 @@ describe('QueueCommand', () => {
 
     expect(interaction.reply).toHaveBeenCalledWith({
       content: '📭 La cola de reproducción está vacía.',
-      ephemeral: true,
+      flags: 64,
     });
   });
 

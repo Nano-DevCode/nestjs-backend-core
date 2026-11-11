@@ -33,7 +33,7 @@ describe('JoinCommand', () => {
 
     expect(interaction.reply).toHaveBeenCalledWith({
       content: '❌ Debes ingresar primero a un canal de voz.',
-      ephemeral: true,
+      flags: 64,
     });
   });
 
@@ -70,7 +70,7 @@ describe('JoinCommand', () => {
 
     expect(interaction.reply).toHaveBeenCalledWith({
       content: '❌ No se pudo conectar al canal de voz.',
-      ephemeral: true,
+      flags: 64,
     });
   });
 });

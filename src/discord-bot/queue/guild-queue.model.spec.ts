@@ -1,4 +1,8 @@
-import { GuildQueue, AudioTrack } from './guild-queue.model';
+import {
+  GuildQueue,
+  AudioTrack,
+  MAX_HISTORY_ITEMS,
+} from './guild-queue.model';
 
 describe('GuildQueue Model', () => {
   let queue: GuildQueue;
@@ -45,7 +49,7 @@ describe('GuildQueue Model', () => {
     });
   });
 
-  describe('getNextTrack', () => {
+  describe('getNextTrack & FIFO History Limit (10)', () => {
     it('debe avanzar a la siguiente pista y guardar la actual en el historial cuando repeatMode es off', () => {
       const t1 = createMockTrack('t-1', 'Track 1');
       const t2 = createMockTrack('t-2', 'Track 2');
@@ -59,6 +63,21 @@ describe('GuildQueue Model', () => {
       const second = queue.getNextTrack();
       expect(second).toEqual(t2);
       expect(queue.history[0]).toEqual(t1);
+    });
+
+    it('debe mantener únicamente las últimas 10 canciones en el historial (FIFO)', () => {
+      const tracks = Array.from({ length: 15 }, (_, idx) =>
+        createMockTrack(`t-${idx + 1}`, `Track ${idx + 1}`),
+      );
+      queue.addTracks(tracks);
+
+      for (let i = 0; i < 15; i++) {
+        queue.getNextTrack();
+      }
+
+      expect(queue.history).toHaveLength(MAX_HISTORY_ITEMS);
+      expect(queue.history[0].info.identifier).toBe('t-14');
+      expect(queue.history[MAX_HISTORY_ITEMS - 1].info.identifier).toBe('t-5');
     });
 
     it('debe repetir la misma pista si repeatMode es track', () => {
@@ -136,10 +155,19 @@ describe('GuildQueue Model', () => {
   });
 
   describe('toJSON', () => {
-    it('debe serializar el estado de la cola para WebSockets o REST', () => {
+    it('debe serializar el estado de la cola incluyendo history limitado a 10 para WebSockets y REST', () => {
+      const t1 = createMockTrack('t-1', 'Track 1');
+      const t2 = createMockTrack('t-2', 'Track 2');
+      queue.addTracks([t1, t2]);
+      queue.getNextTrack();
+      queue.getNextTrack();
+
       const json = queue.toJSON();
       expect(json.guildId).toBe('guild-123');
       expect(json.queueLength).toBe(0);
+      expect(json.history).toHaveLength(1);
+      expect(json.history[0]).toEqual(t1);
+      expect(json.historyLength).toBe(1);
       expect(json.volume).toBe(100);
       expect(json.repeatMode).toBe('off');
     });

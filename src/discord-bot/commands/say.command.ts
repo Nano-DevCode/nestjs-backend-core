@@ -3,6 +3,7 @@ import {
   SlashCommandBuilder,
   ChannelType,
   PermissionFlagsBits,
+  MessageFlags,
   type ChatInputCommandInteraction,
   type GuildTextBasedChannel,
 } from 'discord.js';
@@ -35,7 +36,7 @@ export class SayCommand implements ISlashCommand {
     if (!guild) {
       await interaction.reply({
         content: '❌ Este comando solo puede usarse dentro de un servidor.',
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
       return;
     }
@@ -47,7 +48,7 @@ export class SayCommand implements ISlashCommand {
     if (!botMember) {
       await interaction.reply({
         content: '❌ No se pudo verificar la identidad del bot en el servidor.',
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
       return;
     }
@@ -58,7 +59,7 @@ export class SayCommand implements ISlashCommand {
     if (!permissions || !permissions.has(PermissionFlagsBits.SendMessages)) {
       await interaction.reply({
         content: `❌ El bot no tiene permisos suficientes (\`Enviar Mensajes\`) en el canal <#${targetChannel.id}>.`,
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
       return;
     }
@@ -71,14 +72,13 @@ export class SayCommand implements ISlashCommand {
 
       await interaction.reply({
         content: `✅ Mensaje enviado exitosamente a <#${targetChannel.id}>.`,
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
     } catch (err: unknown) {
       await interaction.reply({
         content: `❌ Falló el envío del mensaje: ${(err as Error).message}`,
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
     }
   }
 }
-

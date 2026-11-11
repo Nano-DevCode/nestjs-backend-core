@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import {
   SlashCommandBuilder,
+  MessageFlags,
   type ChatInputCommandInteraction,
 } from 'discord.js';
 import type { ISlashCommand } from './command.interface';
@@ -33,7 +34,7 @@ export class RemoveCommand implements ISlashCommand {
     if (!queue || queue.tracks.length === 0) {
       await interaction.reply({
         content: '📭 No hay pistas en la cola para remover.',
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
       return;
     }
@@ -46,7 +47,7 @@ export class RemoveCommand implements ISlashCommand {
     } else {
       await interaction.reply({
         content: `⚠️ No existe ninguna pista en la posición #${position}. La cola tiene ${queue.tracks.length} elementos.`,
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
     }
   }

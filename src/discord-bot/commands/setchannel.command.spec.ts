@@ -28,7 +28,7 @@ describe('SetChannelCommand', () => {
 
     expect(interaction.reply).toHaveBeenCalledWith({
       content: '❌ Este comando solo puede usarse dentro de un servidor.',
-      ephemeral: true,
+      flags: 64,
     });
   });
 
@@ -50,7 +50,7 @@ describe('SetChannelCommand', () => {
     expect(interaction.reply).toHaveBeenCalledWith(
       expect.objectContaining({
         content: expect.stringContaining('Restricción eliminada'),
-        ephemeral: true,
+        flags: 64,
       }),
     );
   });
@@ -73,7 +73,7 @@ describe('SetChannelCommand', () => {
     expect(interaction.reply).toHaveBeenCalledWith(
       expect.objectContaining({
         content: expect.stringContaining('<#music-chan-id>'),
-        ephemeral: true,
+        flags: 64,
       }),
     );
   });
@@ -105,7 +105,7 @@ describe('SetChannelCommand', () => {
     expect(interaction.reply).toHaveBeenCalledWith(
       expect.objectContaining({
         content: expect.stringContaining('<#existing-chan-id>'),
-        ephemeral: true,
+        flags: 64,
       }),
     );
   });
@@ -127,7 +127,7 @@ describe('SetChannelCommand', () => {
     expect(interaction.reply).toHaveBeenCalledWith(
       expect.objectContaining({
         content: expect.stringContaining('No hay ningún canal exclusivo asignado'),
-        ephemeral: true,
+        flags: 64,
       }),
     );
   });

@@ -3,6 +3,7 @@ import {
   SlashCommandBuilder,
   ChannelType,
   PermissionFlagsBits,
+  MessageFlags,
   type ChatInputCommandInteraction,
 } from 'discord.js';
 import type { ISlashCommand } from './command.interface';
@@ -41,7 +42,7 @@ export class SetChannelCommand implements ISlashCommand {
     if (!guildId) {
       await interaction.reply({
         content: '❌ Este comando solo puede usarse dentro de un servidor.',
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
       return;
     }
@@ -56,7 +57,7 @@ export class SetChannelCommand implements ISlashCommand {
       await interaction.reply({
         content:
           '✅ **Restricción eliminada.** El bot ahora aceptará comandos de música en cualquier canal de texto.',
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
       return;
     }
@@ -67,7 +68,7 @@ export class SetChannelCommand implements ISlashCommand {
       });
       await interaction.reply({
         content: `✅ **Canal exclusivo configurado.** A partir de ahora, los comandos y la música solo se atenderán en <#${channelOption.id}>.`,
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
       return;
     }
@@ -76,15 +77,14 @@ export class SetChannelCommand implements ISlashCommand {
     if (currentConfig?.dedicatedChannelId) {
       await interaction.reply({
         content: `📌 El canal exclusivo actual es <#${currentConfig.dedicatedChannelId}>.\nPara cambiarlo usa \`/setchannel canal:#otro-canal\` o para removerlo usa \`/setchannel remover:true\`.`,
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
     } else {
       await interaction.reply({
         content:
           'ℹ️ No hay ningún canal exclusivo asignado. El bot acepta comandos en cualquier canal.\nUsa `/setchannel canal:#tu-canal` para definir uno.',
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
     }
   }
 }
-

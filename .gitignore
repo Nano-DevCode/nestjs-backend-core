@@ -58,8 +58,11 @@ report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 /generated/prisma
 prisma/generated
 
-# Backups
+# Backups & Local SQL Dumps (preserve Prisma migrations)
 /backups
+*.sql
+!prisma/migrations/**/*.sql
+!prisma/migrations/**/migration.sql
 
 # Agent skills and tool metadata
 .agents

@@ -1,6 +1,7 @@
 import {
   Injectable,
   Logger,
+  Optional,
   BadRequestException,
   NotFoundException,
 } from '@nestjs/common';
@@ -26,7 +27,7 @@ export class NotificationsService {
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly notificationGateway: NotificationGateway,
+    @Optional() private readonly notificationGateway?: NotificationGateway,
   ) {}
 
   async createNotification(dto: CreateNotificationDto) {
@@ -74,7 +75,7 @@ export class NotificationsService {
     });
 
     // 1. Despacho en tiempo real vía WebSocket
-    this.notificationGateway.sendToUser(targetUserId, notification);
+    this.notificationGateway?.sendToUser(targetUserId, notification);
 
     // 2. Despacho en tiempo real vía SSE Stream
     this.sseSubject.next({
@@ -86,7 +87,7 @@ export class NotificationsService {
   }
 
   sendUserEvent(userId: string, event: string, payload: unknown): void {
-    this.notificationGateway.sendEventToUser(userId, event, payload);
+    this.notificationGateway?.sendEventToUser(userId, event, payload);
     this.sseSubject.next({
       userId,
       data: { event, payload },

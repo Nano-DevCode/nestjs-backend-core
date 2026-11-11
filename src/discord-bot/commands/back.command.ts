@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import {
   SlashCommandBuilder,
+  MessageFlags,
   type ChatInputCommandInteraction,
 } from 'discord.js';
 import type { ISlashCommand } from './command.interface';
@@ -23,7 +24,7 @@ export class BackCommand implements ISlashCommand {
     } else {
       await interaction.reply({
         content: '⚠️ No hay canciones previas en el historial de reproducción.',
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
     }
   }

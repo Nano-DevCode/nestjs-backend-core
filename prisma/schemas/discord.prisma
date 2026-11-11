@@ -13,3 +13,24 @@ model DiscordGuildConfig {
   @@map("discord_guild_configs")
 }
 
+model UserGuild {
+  id             String   @id @default(uuid())
+  userId         String   @map("user_id")
+  guildId        String   @map("guild_id")
+  guildName      String?  @map("guild_name")
+  role           String   @default("OWNER") // "OWNER" | "ADMINISTRATOR" | "MANAGE_GUILD"
+  discordUserId  String?  @map("discord_user_id")
+  voiceChannelId String?  @map("voice_channel_id")
+  nodeName       String   @default("lavalink-node-1") @map("node_name")
+  linkedAt       DateTime @default(now()) @map("linked_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, guildId])
+  @@index([userId])
+  @@index([guildId])
+  @@map("user_guilds")
+}
+
+

@@ -43,7 +43,7 @@ describe('SeekCommand', () => {
 
     expect(interaction.reply).toHaveBeenCalledWith({
       content: '⚠️ No hay reproducción activa para ajustar la posición.',
-      ephemeral: true,
+      flags: 64,
     });
   });
 });
