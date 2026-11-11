@@ -179,7 +179,7 @@ services:
       - DATABASE_URL=postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-MySecretPassword123}@postgres-db:5432/${DB_NAME:-sistema_db}?schema=public
       - DATABASE_REPLICA_URL=${DATABASE_REPLICA_URL:-}
       - APP_NAME=${APP_NAME:-Sistema Core}
-      - APP_URL=https://sistema.nano-service.com
+      - APP_URL=${APP_URL:-https://sistema.nano-service.com}
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - REDIS_PASSWORD=${REDIS_PASSWORD:-MyRedisSecretPassword123}
@@ -206,14 +206,15 @@ services:
       - FRONTEND_URL=${FRONTEND_URL:-https://sistema.nano-service.com,http://localhost:5173,http://localhost:3000}
       - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-}
       - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET:-}
-      - GOOGLE_CALLBACK_URL=https://sistema.nano-service.com/api/auth/google/callback
+      - GOOGLE_CALLBACK_URL=${GOOGLE_CALLBACK_URL:-https://sistema.nano-service.com/api/auth/google/callback}
       - FACEBOOK_APP_ID=${FACEBOOK_APP_ID:-}
       - FACEBOOK_APP_SECRET=${FACEBOOK_APP_SECRET:-}
-      - FACEBOOK_CALLBACK_URL=https://sistema.nano-service.com/api/auth/facebook/callback
+      - FACEBOOK_CALLBACK_URL=${FACEBOOK_CALLBACK_URL:-https://sistema.nano-service.com/api/auth/facebook/callback}
       - DISCORD_BOT_ENABLED=${DISCORD_BOT_ENABLED:-true}
       - DISCORD_BOT_TOKEN=${DISCORD_BOT_TOKEN:-}
       - DISCORD_CLIENT_ID=${DISCORD_CLIENT_ID:-}
-      - DISCORD_CLIENT_SECRET=${DISCORD_CLIENT_SECRET}
+      - DISCORD_CLIENT_SECRET=${DISCORD_CLIENT_SECRET:-}
+      - DISCORD_OAUTH_REDIRECT_URI=${DISCORD_OAUTH_REDIRECT_URI:-https://sistema.nano-service.com/api/v1/discord/oauth/callback}
       - LAVALINK_HOST=lavalink
       - LAVALINK_PORT=${LAVALINK_PORT:-2333}
       - LAVALINK_PASSWORD=${LAVALINK_PASSWORD:-youshallnotpass}
@@ -223,6 +224,7 @@ services:
       - TWITCH_BOT_USERNAME=${TWITCH_BOT_USERNAME:-}
       - TWITCH_BOT_OAUTH_TOKEN=${TWITCH_BOT_OAUTH_TOKEN:-}
       - TWITCH_CLIENT_ID=${TWITCH_CLIENT_ID:-}
+      - TWITCH_REDIRECT_URI=${TWITCH_REDIRECT_URI:-https://sistema.nano-service.com/api/v1/twitch/callback}
       - PROCESS_TYPE=api
       - DISABLE_WORKERS=true
       - SYSTEM_ACTIVATION_KEY=${SYSTEM_ACTIVATION_KEY:-nano-core-license-key-2026-auth-valid-9f82c1}
@@ -271,7 +273,7 @@ services:
       - DATABASE_URL=postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-MySecretPassword123}@postgres-db:5432/${DB_NAME:-sistema_db}?schema=public
       - DATABASE_REPLICA_URL=${DATABASE_REPLICA_URL:-}
       - APP_NAME=${APP_NAME:-Sistema Core}
-      - APP_URL=https://sistema.nano-service.com
+      - APP_URL=${APP_URL:-https://sistema.nano-service.com}
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - REDIS_PASSWORD=${REDIS_PASSWORD:-MyRedisSecretPassword123}
