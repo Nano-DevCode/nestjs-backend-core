@@ -568,6 +568,18 @@ export class TwitchChatService
       Boolean(msg.userInfo.isBroadcaster) || Boolean(msg.userInfo.isMod);
 
     switch (command) {
+      case '!pr':
+      case '!tts':
+      case '!say': {
+        return await this.handleTtsCommand(
+          cleanChannel,
+          link,
+          argText,
+          msg,
+          viewerMention,
+        );
+      }
+
       case '!pl':
       case '!sr': {
         return await this.handlePlayCommand(
@@ -668,6 +680,62 @@ export class TwitchChatService
       default:
         return null;
     }
+  }
+
+  private async handleTtsCommand(
+    cleanChannel: string,
+    link: TwitchChannelLink,
+    rawText: string,
+    msg: TwurpleChatMessageContext,
+    viewerMention: string,
+  ): Promise<string> {
+    if (!rawText || !rawText.trim()) {
+      return await this.reply(
+        cleanChannel,
+        `${viewerMention} ⚠️ Uso: !pr <mensaje para leer en voz alta en el navegador>`,
+      );
+    }
+
+    // Cooldown de 10 segundos por usuario para TTS
+    const cooldownCheck = await this.rateLimiter.checkAndSetCooldown(
+      `tts:${cleanChannel}`,
+      msg.userInfo.userId,
+      10,
+    );
+
+    if (!cooldownCheck.allowed) {
+      return await this.reply(
+        cleanChannel,
+        `${viewerMention} ⏳ Espera ${cooldownCheck.remainingSeconds}s antes de enviar otro mensaje de voz (!pr).`,
+      );
+    }
+
+    // Sanitizar y acotar mensaje a máx 250 caracteres para evitar spam o saturación
+    const sanitized = rawText
+      .trim()
+      .replace(/[\u0000-\u001F\u007F-\u009F]/g, '')
+      .slice(0, 250);
+
+    const displayName = msg.userInfo.displayName || msg.userInfo.userName;
+
+    const payload = {
+      channel: cleanChannel,
+      user: msg.userInfo.userName,
+      displayName,
+      text: sanitized,
+      timestamp: new Date().toISOString(),
+    };
+
+    console.log(
+      `[TwitchChatService] 🗣️ [!pr TTS en #${cleanChannel}] de @${displayName}: "${sanitized}"`,
+    );
+
+    this.wsGateway.emitTwitchTts(link.guildId, payload, link.userId);
+
+    return await this.reply(
+      cleanChannel,
+      `🗣️ ${viewerMention}: Mensaje enviado al navegador del streamer.`,
+    );
   }
 
   private async handlePlayCommand(

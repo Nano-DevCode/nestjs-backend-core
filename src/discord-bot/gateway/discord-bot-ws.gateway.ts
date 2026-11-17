@@ -168,6 +168,7 @@ export class DiscordBotWsGateway
     const user = this.extractAndVerifyJwt(client);
     if (user) {
       client.data = { ...(client.data || {}), user };
+      void client.join(`user:${user.id}`);
     }
     this.logger.log(
       `[DiscordBotWsGateway] Cliente conectado: ${client.id}${user ? ` (userId=${user.id})` : ''}`,
@@ -317,6 +318,33 @@ export class DiscordBotWsGateway
         .emit('discord:track-progress', progress);
     } catch {
       // Ignorar
+    }
+  }
+
+  emitTwitchTts(
+    guildId: string,
+    payload: {
+      channel: string;
+      user: string;
+      displayName: string;
+      text: string;
+      timestamp: string;
+    },
+    userId?: string,
+  ): void {
+    if (!this.server) return;
+    this.server.to(guildId).emit('discord:twitch-tts', payload);
+    if (userId) {
+      this.server.to(`user:${userId}`).emit('discord:twitch-tts', payload);
+    }
+    try {
+      const ns = this.server.of('/realtime/discord-bot');
+      ns.to(guildId).emit('discord:twitch-tts', payload);
+      if (userId) {
+        ns.to(`user:${userId}`).emit('discord:twitch-tts', payload);
+      }
+    } catch {
+      // Ignorar si el sub-namespace no está inicializado independientemente
     }
   }
 }

@@ -53,6 +53,7 @@ describe('TwitchChatService & TwitchRateLimiterService', () => {
 
     wsGatewayMock = {
       emitQueueUpdated: jest.fn(),
+      emitTwitchTts: jest.fn(),
     };
 
     chatClientMock = {
@@ -293,5 +294,34 @@ describe('TwitchChatService & TwitchRateLimiterService', () => {
     expect(modAttempt).toContain('⏭️ Canción saltada');
     expect(playbackMock.playNext).toHaveBeenCalledWith('guild-1');
     expect(rateLimiter).toBeDefined();
+  });
+
+  it('debe procesar !pr y emitir el evento WebSocket discord:twitch-tts para lectura en el navegador', async () => {
+    const reply = await service.handleIncomingChatMessage(
+      '#nano_stream',
+      'viewer_chat',
+      '!pr Hola streamer, mucho éxito en la partida!',
+      {
+        userInfo: {
+          userId: 'v-tts-1',
+          userName: 'viewer_chat',
+          displayName: 'ViewerChat',
+          isBroadcaster: false,
+          isMod: false,
+        },
+      },
+    );
+
+    expect(reply).toContain('Mensaje enviado al navegador del streamer');
+    expect(wsGatewayMock.emitTwitchTts).toHaveBeenCalledWith(
+      'guild-1',
+      expect.objectContaining({
+        channel: 'nano_stream',
+        user: 'viewer_chat',
+        displayName: 'ViewerChat',
+        text: 'Hola streamer, mucho éxito en la partida!',
+      }),
+      'streamer-1',
+    );
   });
 });
