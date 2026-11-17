@@ -324,6 +324,7 @@ export class DiscordBotWsGateway
   emitTwitchTts(
     guildId: string,
     payload: {
+      id?: string;
       channel: string;
       user: string;
       displayName: string;
@@ -333,18 +334,9 @@ export class DiscordBotWsGateway
     userId?: string,
   ): void {
     if (!this.server) return;
-    this.server.to(guildId).emit('discord:twitch-tts', payload);
-    if (userId) {
-      this.server.to(`user:${userId}`).emit('discord:twitch-tts', payload);
-    }
-    try {
-      const ns = this.server.of('/realtime/discord-bot');
-      ns.to(guildId).emit('discord:twitch-tts', payload);
-      if (userId) {
-        ns.to(`user:${userId}`).emit('discord:twitch-tts', payload);
-      }
-    } catch {
-      // Ignorar si el sub-namespace no está inicializado independientemente
-    }
+    const target = userId
+      ? this.server.to(guildId).to(`user:${userId}`)
+      : this.server.to(guildId);
+    target.emit('discord:twitch-tts', payload);
   }
 }

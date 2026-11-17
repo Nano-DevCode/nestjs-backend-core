@@ -5,6 +5,7 @@ import {
   OnApplicationShutdown,
 } from '@nestjs/common';
 import * as tls from 'node:tls';
+import * as crypto from 'node:crypto';
 import { PrismaService } from '../../prisma/prisma.service';
 import { LavalinkService } from '../audio/lavalink.service';
 import { DiscordPlaybackService } from '../audio/discord-playback.service';
@@ -84,6 +85,7 @@ class NativeTwitchIrcClient implements TwurpleChatClientLike {
   > = [];
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   private lineBuffer = '';
+  private readonly seenMessageIds = new Set<string>();
   private readonly canSendMessages: boolean;
   private readonly botUsername: string;
   private readonly oauthToken: string;
@@ -217,6 +219,18 @@ class NativeTwitchIrcClient implements TwurpleChatClientLike {
         if (eqIdx > 0) {
           tags[pair.slice(0, eqIdx)] = pair.slice(eqIdx + 1);
         }
+      }
+    }
+
+    const ircMsgId = tags['id'];
+    if (ircMsgId) {
+      if (this.seenMessageIds.has(ircMsgId)) {
+        return;
+      }
+      this.seenMessageIds.add(ircMsgId);
+      if (this.seenMessageIds.size > 200) {
+        const oldest = this.seenMessageIds.values().next().value;
+        if (oldest) this.seenMessageIds.delete(oldest);
       }
     }
 
@@ -719,6 +733,7 @@ export class TwitchChatService
     const displayName = msg.userInfo.displayName || msg.userInfo.userName;
 
     const payload = {
+      id: crypto.randomUUID(),
       channel: cleanChannel,
       user: msg.userInfo.userName,
       displayName,
